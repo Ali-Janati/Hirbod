@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1" />
+    <meta name="theme-color" content="#3b82f6" />
+    <title>هیربد - ثبت سفارش نمک</title>
+    <style>
+        /* ========== پایه (طراحی موبایل‌محور) ========== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        html, body {
+            background: #f0f4f8;
+            color: #1e293b;
+        }
+        body {
+            min-height: 100vh;
+            padding-bottom: 40px;
+        }
+        .app-container {
+            max-width: 560px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* هدر بالای صفحه، همیشه ثابت */
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background: #3b82f6;
+            color: white;
+            padding: 14px 16px;
+            padding-top: max(14px, env(safe-area-inset-top));
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+        }
+        .topbar h1 {
+            font-size: 17px;
+            font-weight: 700;
+        }
+        .topbar .role-badge {
+            font-size: 12px;
+            font-weight: 600;
+            opacity: 0.95;
+            border-radius: 30px;
+            padding: 10px;
+        }
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .logout-btn {
+            background: rgba(255,255,255,0.18);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.5);
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            width: auto;
+            margin: 0;
+        }
+        .logout-btn:active { background: rgba(255,255,255,0.3); }
+
+        .page-content {
+            padding: 16px;
+        }
+
+        .hidden { display: none !important; }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 18px;
+            margin-bottom: 16px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .card h3 {
+            font-size: 16px;
+            margin-bottom: 6px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            color: #334155;
+            margin-top: 14px;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 12px;
+            border: 1px solid #cbd5e1;
+            font-size: 16px; /* جلوگیری از زوم خودکار در آیفون */
+            background: white;
+            transition: 0.15s;
+            min-height: 50px;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        input:disabled, select:disabled {
+            background: #f1f5f9;
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        button {
+            background: #3b82f6;
+            color: white;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            margin-top: 16px;
+        }
+        button:active { transform: scale(0.98); }
+        .btn-danger { background: #ef4444; }
+        .btn-outline {
+            background: transparent;
+            color: #3b82f6;
+            border: 2px solid #3b82f6;
+        }
+        .btn-success { background: #22c55e; }
+
+        .row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .row > * { flex: 1; min-width: 130px; }
+
+        .badge {
+            display: inline-block;
+            background: #e2e8f0;
+            padding: 5px 12px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+        .badge-viewer { background: #fef3c7; color: #92400e; }
+        .badge-admin { background: #dbeafe; color: #1e40af; }
+
+        .notice-viewer {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fde68a;
+            padding: 12px 14px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .msg {
+            padding: 12px 14px;
+            border-radius: 12px;
+            margin: 12px 0;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        .msg-success { background: #dcfce7; color: #166534; }
+        .msg-error { background: #fee2e2; color: #991b1b; }
+
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+        .mt-2 { margin-top: 12px; }
+        .text-sm { font-size: 13px; color: #64748b; }
+
+        .stock-box {
+            margin-top: 12px;
+            background: #f1f5f9;
+            padding: 12px 14px;
+            border-radius: 12px;
+        }
+        .stock-box .text-sm { font-size: 13.5px; }
+        .stock-zero { color: #ef4444; font-weight: bold; }
+        .stock-available { color: #16a34a; font-weight: bold; }
+
+        /* ---------- جدول‌های سفارش به صورت کارت روی موبایل ---------- */
+        .orders-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .orders-table th {
+            display: none; /* سربرگ‌ها روی موبایل مخفی */
+        }
+        .orders-table tr {
+            display: block;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+        }
+        .orders-table td {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 2px;
+            border: none;
+            text-align: right;
+            font-size: 13.5px;
+        }
+        .orders-table td::before {
+            content: attr(data-label);
+            font-weight: 700;
+            color: #64748b;
+        }
+        @media (min-width: 640px) {
+            .orders-table th {
+                display: table-cell;
+                background: #f1f5f9;
+                font-weight: 700;
+                padding: 10px 8px;
+                text-align: center;
+            }
+            .orders-table tr {
+                display: table-row;
+                background: white;
+                border: none;
+                border-bottom: 1px solid #e2e8f0;
+                border-radius: 0;
+                padding: 0;
+                margin-bottom: 0;
+            }
+            .orders-table td {
+                display: table-cell;
+                text-align: center;
+                padding: 10px 8px;
+            }
+            .orders-table td::before { content: none; }
+        }
+
+        /* ---------- جدول پیش‌بینی: اسکرول افقی با ستون تاریخ ثابت ---------- */
+        .scroll-table {
+            overflow-x: auto;
+            margin-top: 12px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            -webkit-overflow-scrolling: touch;
+        }
+        .excel-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .excel-table th, .excel-table td {
+            padding: 6px 4px;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .excel-table th {
+            background: #1e293b;
+            color: white;
+            font-size: 12px;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+        .excel-table td { background: white; }
+        .excel-table tr:nth-child(even) td { background: #f8fafc; }
+        .excel-table .date-col {
+            font-weight: 700;
+            color: #1e293b;
+            min-width: 92px;
+            position: sticky;
+            right: 0;
+            z-index: 1;
+            background: #eef2ff;
+        }
+        .excel-table th.date-col-th {
+            position: sticky;
+            right: 0;
+            z-index: 3;
+        }
+        .excel-table input {
+            width: 56px;
+            min-height: 38px;
+            padding: 4px;
+            text-align: center;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 13px;
+            background: white;
+            margin: 0;
+        }
+        .excel-table input:focus { border-color: #3b82f6; background: #eff6ff; }
+        .scroll-hint {
+            text-align: center;
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 6px;
+        }
+
+        .btn-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+        .btn-group button { flex: 1; min-width: 100px; margin-top: 0; }
+    </style>
+</head>
+<body>
+
+    <div class="app-container" id="app">
+
+        <!-- ==================== صفحه ورود ==================== -->
+        <div id="loginPage">
+            <div class="topbar">
+                <h1>🧂 هیربد</h1>
+            </div>
+            <div class="page-content">
+                <div class="card">
+                    <h3>🔐 ورود به سیستم</h3>
+                    <p class="text-sm">توکن خود را وارد کنید.</p>
+                    <label>توکن</label>
+                    <input type="text" id="tokenInput" inputmode="text" autocomplete="off" placeholder="مثال: admin-2564" />
+                    <button id="loginBtn">ورود</button>
+                    <div id="loginMsg" class="mt-2"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== پنل کاربری ==================== -->
+        <div id="userPanel" class="hidden">
+            <div class="topbar">
+                <h1>🧂 هیربد</h1>
+                <div class="topbar-actions">
+                    <span class="role-badge" id="userRoleBadge">👤 کاربر</span>
+                    <button id="logoutUserBtn" class="logout-btn">خروج</button>
+                </div>
+            </div>
+            <div class="page-content">
+                <div class="card">
+                    <h3>📦 ثبت سفارش جدید</h3>
+                    <label>نوع نمک</label>
+                    <select id="orderType">
+                        <option value="صورتی">صورتی</option>
+                        <option value="آبی">آبی</option>
+                        <option value="سفید">سفید</option>
+                        <option value="دریایی">دریایی</option>
+                    </select>
+                    <label>تعداد</label>
+                    <input type="number" id="orderQty" value="1" min="1" inputmode="numeric" />
+                    <label>تاریخ دریافت</label>
+                    <input type="date" id="orderDate" />
+                    <p class="text-sm mt-2" id="orderDatePreview"></p>
+                    <button id="submitOrderBtn" class="btn-success">ثبت سفارش</button>
+                    <div id="orderMsg" class="mt-2"></div>
+                </div>
+                <div class="card">
+                    <h3>📋 سفارشات من</h3>
+                    <div id="myOrdersList"><p class="text-sm">هیچ سفارشی ثبت نشده است.</p></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== پنل مدیریت / نظارت ==================== -->
+        <div id="adminPanel" class="hidden">
+            <div class="topbar">
+                <h1>🧂 هیربد</h1>
+                <div class="topbar-actions">
+                    <span class="role-badge" id="adminRoleBadge">🛠 مدیر</span>
+                    <button id="logoutAdminBtn" class="logout-btn">خروج</button>
+                </div>
+            </div>
+            <div class="page-content">
+
+                <div id="viewerNotice" class="notice-viewer hidden">
+                    🔒 شما با نقش «ناظر» وارد شده‌اید و فقط امکان مشاهده اطلاعات را دارید؛ امکان تغییر موجودی یا پیش‌بینی برای شما غیرفعال است.
+                </div>
+
+                <!-- موجودی امروز -->
+                <div class="card">
+                    <h3>📊 تنظیم موجودی روزانه (امروز)</h3>
+                    <p class="text-sm">همه مقادیر پیش‌فرض <strong>۰</strong> هستند.</p>
+                    <div class="row">
+                        <div>
+                            <label>نوع نمک</label>
+                            <select id="stockType">
+                                <option value="صورتی">صورتی</option>
+                                <option value="آبی">آبی</option>
+                                <option value="سفید">سفید</option>
+                                <option value="دریایی">دریایی</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>تعداد</label>
+                            <input type="number" id="stockQty" value="0" min="0" inputmode="numeric" />
+                        </div>
+                    </div>
+                    <button id="setStockBtn">ذخیره موجودی امروز</button>
+                    <div id="stockMsg" class="mt-2"></div>
+                    <div class="stock-box">
+                        <p class="text-sm" style="margin:0;">
+                            <strong>موجودی فعلی:</strong>
+                            <span id="adminStockDisplay">همه ۰</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- پیش‌بینی ۲۰ روزه -->
+                <div class="card">
+                    <h3>📈 پیش‌بینی ۲۰ روز آینده</h3>
+                    <p class="text-sm">برای هر روز و هر نوع نمک، مقدار موجودی دستی وارد می‌شود. همه مقادیر پیش‌فرض ۰ هستند.</p>
+                    <div class="scroll-table">
+                        <table class="excel-table" id="forecastTable">
+                            <thead>
+                                <tr>
+                                    <th class="date-col-th">تاریخ</th>
+                                    <th>صورتی</th>
+                                    <th>آبی</th>
+                                    <th>سفید</th>
+                                    <th>دریایی</th>
+                                </tr>
+                            </thead>
+                            <tbody id="forecastBody"></tbody>
+                        </table>
+                    </div>
+                    <p class="scroll-hint">⇠ برای دیدن روزهای بیشتر به چپ بکشید ⇢</p>
+                    <div class="btn-group">
+                        <button id="saveForecastBtn" class="btn-success">💾 ذخیره پیش‌بینی</button>
+                        <button id="renderForecastBtn" class="btn-outline">🔄 بازنشانی جدول</button>
+                        <button id="resetForecastBtn" class="btn-danger">🗑️ ریست به صفر</button>
+                    </div>
+                    <div id="forecastMsg" class="mt-2"></div>
+                </div>
+
+                <!-- همه سفارشات -->
+                <div class="card">
+                    <h3>📋 همه سفارشات</h3>
+                    <div id="allOrdersList"><p class="text-sm">هیچ سفارشی ثبت نشده است.</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- جاوااسکریپت با addEventListener -->
+    <!-- ============================================================ -->
+    <script>
+        (function() {
+            'use strict';
+
+            // ============================================================
+            // 1. تنظیمات API و داده‌های محلی
+            // آدرس بک‌اند خود را اینجا وارد کنید:
+            // ============================================================
+            const API_BASE = 'http://192.168.100.27/hirbad/api'; // ← آدرس هاست خود را اینجا بگذارید
+
+            const TOKEN_STORAGE_KEY = 'hirbad-salt-token';
+
+            let currentToken = null;
+            let currentRole  = null;
+            let currentUserName = null;
+
+            // کش محلی (پس از fetch از سرور پر می‌شود)
+            let stock    = { 'صورتی': 0, 'آبی': 0, 'سفید': 0, 'دریایی': 0 };
+            let forecast = {};
+            let orders   = [];
+
+            // ============================================================
+            // 1b. لایه‌ی API — همه تماس‌ها با سرور اینجاست
+            // ============================================================
+            async function apiGet(endpoint) {
+                const sep = endpoint.includes('?') ? '&' : '?';
+                const url = `${API_BASE}/${endpoint}${sep}token=${encodeURIComponent(currentToken)}`;
+                const res  = await fetch(url);
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || 'خطای سرور');
+                return data.data;
+            }
+
+            async function apiPost(endpoint, body = {}) {
+                const url  = `${API_BASE}/${endpoint}`;
+                const res  = await fetch(url, {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify({ token: currentToken, ...body }),
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || 'خطای سرور');
+                return data.data;
+            }
+
+            // ============================================================
+            // 2. توابع کمکی
+            // ============================================================
+            function getToday() {
+                return new Date().toISOString().split('T')[0];
+            }
+
+            function addDays(dateStr, days) {
+                const d = new Date(dateStr);
+                d.setDate(d.getDate() + days);
+                return d.toISOString().split('T')[0];
+            }
+
+            function showMsg(el, text, type) {
+                el.innerHTML = `<div class="msg msg-${type}">${text}</div>`;
+            }
+
+            function clearMsg(el) {
+                el.innerHTML = '';
+            }
+
+            // ---------- تبدیل تاریخ میلادی به شمسی (بدون کتابخانه خارجی) ----------
+            const JALALI_MONTHS = [
+                'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
+                'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'
+            ];
+
+            function toPersianDigits(input) {
+                const fa = ['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'];
+                return String(input).replace(/[0-9]/g, d => fa[d]);
+            }
+
+            function gregorianToJalali(gy, gm, gd) {
+                const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+                let jy = (gy <= 1600) ? 0 : 979;
+                gy -= (gy <= 1600) ? 621 : 1600;
+                const gy2 = (gm > 2) ? (gy + 1) : gy;
+                let days = (365 * gy) + Math.floor((gy2 + 3) / 4) - Math.floor((gy2 + 99) / 100) +
+                    Math.floor((gy2 + 399) / 400) - 80 + gd + g_d_m[gm - 1];
+                jy += 33 * Math.floor(days / 12053);
+                days %= 12053;
+                jy += 4 * Math.floor(days / 1461);
+                days %= 1461;
+                if (days > 365) {
+                    jy += Math.floor((days - 1) / 365);
+                    days = (days - 1) % 365;
+                }
+                let jm, jd;
+                if (days < 186) {
+                    jm = 1 + Math.floor(days / 31);
+                    jd = 1 + (days % 31);
+                } else {
+                    jm = 7 + Math.floor((days - 186) / 30);
+                    jd = 1 + ((days - 186) % 30);
+                }
+                return [jy, jm, jd];
+            }
+
+            function toJalaliString(isoDate) {
+                if (!isoDate) return '';
+                const [gy, gm, gd] = isoDate.split('-').map(Number);
+                const [jy, jm, jd] = gregorianToJalali(gy, gm, gd);
+                const jmStr = String(jm).padStart(2, '0');
+                const jdStr = String(jd).padStart(2, '0');
+                return toPersianDigits(`${jy}/${jmStr}/${jdStr}`);
+            }
+
+            function toJalaliLongString(isoDate) {
+                if (!isoDate) return '';
+                const [gy, gm, gd] = isoDate.split('-').map(Number);
+                const [jy, jm, jd] = gregorianToJalali(gy, gm, gd);
+                return `${toPersianDigits(jd)} ${JALALI_MONTHS[jm - 1]} ${toPersianDigits(jy)}`;
+            }
+
+            // ============================================================
+            // 3. مقداردهی اولیه پیش‌بینی
+            // ============================================================
+            function initForecast() {
+                const today = getToday();
+                const saltTypes = ['صورتی', 'آبی', 'سفید', 'دریایی'];
+                if (Object.keys(forecast).length === 0) {
+                    for (let i = 0; i < 20; i++) {
+                        const date = addDays(today, i + 1);
+                        forecast[date] = {};
+                        saltTypes.forEach(type => {
+                            forecast[date][type] = 0;
+                        });
+                    }
+                }
+            }
+
+            // ============================================================
+            // 4. نمایش موجودی (فقط برای مدیر/ناظر - مشتریان اجازه دیدن موجودی را ندارند)
+            // ============================================================
+            function updateAdminStockDisplay() {
+                const display = document.getElementById('adminStockDisplay');
+                if (display) {
+                    let html = '';
+                    const types = ['صورتی', 'آبی', 'سفید', 'دریایی'];
+                    types.forEach(type => {
+                        const val = stock[type] || 0;
+                        const color = val > 0 ? 'stock-available' : 'stock-zero';
+                        html += `<span class="${color}">${type}: ${val}</span> `;
+                    });
+                    display.innerHTML = html;
+                }
+            }
+
+            // ============================================================
+            // 5. رندر جدول پیش‌بینی
+            // ============================================================
+            function renderForecastTable() {
+                if (Object.keys(forecast).length === 0) {
+                    initForecast();
+                }
+                const tbody = document.getElementById('forecastBody');
+                let html = '';
+                const dates = Object.keys(forecast).sort();
+                const saltTypes = ['صورتی', 'آبی', 'سفید', 'دریایی'];
+                const isViewer = currentRole === 'viewer';
+                dates.forEach(date => {
+                    html += `<tr>`;
+                    html += `<td class="date-col">${toJalaliString(date)}</td>`;
+                    saltTypes.forEach(type => {
+                        const val = forecast[date]?.[type] ?? 0;
+                        html += `<td>
+                                    <input type="number" min="0" class="forecast-input"
+                                        data-date="${date}" data-type="${type}"
+                                        value="${val}" ${isViewer ? 'readonly' : ''} />
+                                </td>`;
+                    });
+                    html += `</tr>`;
+                });
+                tbody.innerHTML = html;
+            }
+
+            // ============================================================
+            // 6. ذخیره پیش‌بینی (async — با API)
+            // ============================================================
+            async function saveForecast() {
+                if (currentRole === 'viewer') return;
+                const msg = document.getElementById('forecastMsg');
+                const btn = document.getElementById('saveForecastBtn');
+
+                // جمع‌آوری مقادیر از جدول
+                const inputs = document.querySelectorAll('.forecast-input');
+                inputs.forEach(input => {
+                    const date = input.dataset.date;
+                    const type = input.dataset.type;
+                    const val  = parseInt(input.value) || 0;
+                    if (!forecast[date]) forecast[date] = {};
+                    forecast[date][type] = val;
+                });
+
+                btn.disabled    = true;
+                btn.textContent = '⏳ در حال ذخیره...';
+                clearMsg(msg);
+
+                try {
+                    const result = await apiPost('save_forecast.php', { forecast });
+                    showMsg(msg, `✅ پیش‌بینی ذخیره شد! (${result.saved_rows} ردیف)`, 'success');
+                    setTimeout(() => clearMsg(msg), 2500);
+                } catch (err) {
+                    showMsg(msg, `❌ ${err.message}`, 'error');
+                } finally {
+                    btn.disabled    = false;
+                    btn.textContent = '💾 ذخیره پیش‌بینی';
+                }
+            }
+
+            // ============================================================
+            // 7. ریست پیش‌بینی
+            // ============================================================
+            function resetForecast() {
+                if (currentRole === 'viewer') return;
+                if (!confirm('همه مقادیر پیش‌بینی به صفر می‌روند. ادامه می‌دهید؟')) return;
+                const dates = Object.keys(forecast);
+                const saltTypes = ['صورتی', 'آبی', 'سفید', 'دریایی'];
+                dates.forEach(date => {
+                    forecast[date] = {};
+                    saltTypes.forEach(type => {
+                        forecast[date][type] = 0;
+                    });
+                });
+                renderForecastTable();
+                const msg = document.getElementById('forecastMsg');
+                showMsg(msg, '🗑️ همه مقادیر به صفر ریست شدند.', 'error');
+                setTimeout(() => clearMsg(msg), 2500);
+            }
+
+            // ============================================================
+            // 8. ورود و خروج (async — با API)
+            // ============================================================
+            async function login() {
+                const input = document.getElementById('tokenInput').value.trim();
+                const msg   = document.getElementById('loginMsg');
+                const btn   = document.getElementById('loginBtn');
+
+                if (!input) {
+                    showMsg(msg, 'لطفاً توکن را وارد کنید.', 'error');
+                    return;
+                }
+
+                btn.disabled = true;
+                btn.textContent = '⏳ در حال ورود...';
+                clearMsg(msg);
+
+                try {
+                    const data = await apiPost('login.php', { token: input });
+                    // data: { id, name, role }
+                    currentToken    = input;
+                    currentRole     = data.role;
+                    currentUserName = data.name;
+
+                    try { localStorage.setItem(TOKEN_STORAGE_KEY, currentToken); } catch (e) {}
+
+                    showMsg(msg, '✅ ورود موفق!', 'success');
+                    setTimeout(() => initApp(), 400);
+                } catch (err) {
+                    showMsg(msg, `❌ ${err.message}`, 'error');
+                } finally {
+                    btn.disabled    = false;
+                    btn.textContent = 'ورود';
+                }
+            }
+
+            function logout() {
+                currentToken    = null;
+                currentRole     = null;
+                currentUserName = null;
+                stock           = { 'صورتی': 0, 'آبی': 0, 'سفید': 0, 'دریایی': 0 };
+                forecast        = {};
+                orders          = [];
+                try { localStorage.removeItem(TOKEN_STORAGE_KEY); } catch (e) {}
+                initApp();
+            }
+
+            async function tryAutoLogin() {
+                let savedToken = null;
+                try { savedToken = localStorage.getItem(TOKEN_STORAGE_KEY); } catch (e) {}
+                if (!savedToken) return;
+
+                try {
+                    const data = await apiPost('login.php', { token: savedToken });
+                    currentToken    = savedToken;
+                    currentRole     = data.role;
+                    currentUserName = data.name;
+                } catch (e) {
+                    // توکن ذخیره‌شده نامعتبر — پاک کن
+                    try { localStorage.removeItem(TOKEN_STORAGE_KEY); } catch (_) {}
+                }
+            }
+
+            // ============================================================
+            // 9. ثبت سفارش (async — با API)
+            // ============================================================
+            async function submitOrder() {
+                const type = document.getElementById('orderType').value;
+                const qty  = parseInt(document.getElementById('orderQty').value);
+                const date = document.getElementById('orderDate').value;
+                const msg  = document.getElementById('orderMsg');
+                const btn  = document.getElementById('submitOrderBtn');
+
+                if (!qty || qty < 1) { showMsg(msg, 'تعداد معتبر وارد کنید.', 'error'); return; }
+                if (!date)           { showMsg(msg, 'تاریخ دریافت را انتخاب کنید.', 'error'); return; }
+
+                btn.disabled    = true;
+                btn.textContent = '⏳ در حال ثبت...';
+                clearMsg(msg);
+
+                try {
+                    await apiPost('submit_order.php', {
+                        salt_type:     type,
+                        quantity:      qty,
+                        delivery_date: date,
+                    });
+                    showMsg(msg, `✅ سفارش ${qty} عدد ${type} برای ${toJalaliLongString(date)} ثبت شد.`, 'success');
+                    await renderMyOrders(); // بارگذاری مجدد از سرور
+                } catch (err) {
+                    showMsg(msg, `❌ ${err.message}`, 'error');
+                } finally {
+                    btn.disabled    = false;
+                    btn.textContent = 'ثبت سفارش';
+                }
+            }
+
+            // ============================================================
+            // 10. رندر سفارشات کاربر (async — از API)
+            // ============================================================
+            async function renderMyOrders() {
+                const container = document.getElementById('myOrdersList');
+                container.innerHTML = '<p class="text-sm">⏳ در حال بارگذاری...</p>';
+                try {
+                    const userOrders = await apiGet('my_orders.php');
+                    if (!userOrders || userOrders.length === 0) {
+                        container.innerHTML = '<p class="text-sm">هیچ سفارشی ثبت نشده است.</p>';
+                        return;
+                    }
+                    const statusMap = { confirmed: 'تأیید شده', pending: 'در انتظار', rejected: 'رد شده' };
+                    let html = `<table class="orders-table">
+                        <thead><tr><th>نوع</th><th>تعداد</th><th>تاریخ دریافت</th><th>وضعیت</th></tr></thead><tbody>`;
+                    userOrders.forEach(o => {
+                        html += `<tr>
+                            <td data-label="نوع">${o.salt_type}</td>
+                            <td data-label="تعداد">${o.quantity}</td>
+                            <td data-label="تاریخ دریافت">${toJalaliString(o.delivery_date)}</td>
+                            <td data-label="وضعیت">${statusMap[o.status] || o.status}</td>
+                        </tr>`;
+                    });
+                    html += '</tbody></table>';
+                    container.innerHTML = html;
+                } catch (err) {
+                    container.innerHTML = `<p class="text-sm" style="color:#ef4444">⚠️ خطا در بارگذاری: ${err.message}</p>`;
+                }
+            }
+
+            // ============================================================
+            // 11. رندر همه سفارشات (پنل مدیر/ناظر — async از API)
+            // ============================================================
+            async function renderAllOrders() {
+                const container = document.getElementById('allOrdersList');
+                container.innerHTML = '<p class="text-sm">⏳ در حال بارگذاری...</p>';
+                try {
+                    const allOrders = await apiGet('all_orders.php');
+                    if (!allOrders || allOrders.length === 0) {
+                        container.innerHTML = '<p class="text-sm">هیچ سفارشی ثبت نشده است.</p>';
+                        return;
+                    }
+                    const statusMap = { confirmed: 'تأیید شده', pending: 'در انتظار', rejected: 'رد شده' };
+                    let html = `<table class="orders-table">
+                        <thead><tr><th>کاربر</th><th>نوع</th><th>تعداد</th><th>تاریخ دریافت</th><th>وضعیت</th></tr></thead><tbody>`;
+                    allOrders.forEach(o => {
+                        html += `<tr>
+                            <td data-label="کاربر">${o.user_name}</td>
+                            <td data-label="نوع">${o.salt_type}</td>
+                            <td data-label="تعداد">${o.quantity}</td>
+                            <td data-label="تاریخ دریافت">${toJalaliString(o.delivery_date)}</td>
+                            <td data-label="وضعیت">${statusMap[o.status] || o.status}</td>
+                        </tr>`;
+                    });
+                    html += '</tbody></table>';
+                    container.innerHTML = html;
+                } catch (err) {
+                    container.innerHTML = `<p class="text-sm" style="color:#ef4444">⚠️ خطا در بارگذاری: ${err.message}</p>`;
+                }
+            }
+
+            // ============================================================
+            // 12. تنظیم موجودی (async — با API)
+            // ============================================================
+            async function setStock() {
+                if (currentRole === 'viewer') return;
+                const type = document.getElementById('stockType').value;
+                const qty  = parseInt(document.getElementById('stockQty').value);
+                const msg  = document.getElementById('stockMsg');
+                const btn  = document.getElementById('setStockBtn');
+
+                if (isNaN(qty) || qty < 0) {
+                    showMsg(msg, 'تعداد نمی‌تواند منفی باشد.', 'error');
+                    return;
+                }
+
+                btn.disabled = true;
+                clearMsg(msg);
+
+                try {
+                    await apiPost('set_stock.php', { salt_type: type, quantity: qty });
+                    stock[type] = qty;
+                    showMsg(msg, `✅ موجودی ${type} به ${qty} تنظیم شد.`, 'success');
+                    updateAdminStockDisplay();
+                } catch (err) {
+                    showMsg(msg, `❌ ${err.message}`, 'error');
+                } finally {
+                    btn.disabled = false;
+                }
+            }
+
+            // ============================================================
+            // 13. مقداردهی اولیه تاریخ
+            // ============================================================
+            function setDefaultDate() {
+                const dateInput = document.getElementById('orderDate');
+                if (dateInput) {
+                    dateInput.value = getToday();
+                }
+                updateOrderDatePreview();
+            }
+
+            function updateOrderDatePreview() {
+                const dateInput = document.getElementById('orderDate');
+                const preview = document.getElementById('orderDatePreview');
+                if (dateInput && preview) {
+                    preview.textContent = dateInput.value
+                        ? `📅 معادل شمسی: ${toJalaliLongString(dateInput.value)}`
+                        : '';
+                }
+            }
+
+            // ============================================================
+            // 14. اعمال محدودیت نقش «ناظر» (فقط مشاهده)
+            // ============================================================
+            function applyRolePermissions() {
+                const isViewer = currentRole === 'viewer';
+
+                document.getElementById('viewerNotice').classList.toggle('hidden', !isViewer);
+
+                // بخش تنظیم موجودی
+                document.getElementById('stockType').disabled = isViewer;
+                document.getElementById('stockQty').disabled = isViewer;
+                document.getElementById('setStockBtn').classList.toggle('hidden', isViewer);
+
+                // بخش پیش‌بینی
+                document.getElementById('saveForecastBtn').classList.toggle('hidden', isViewer);
+                document.getElementById('resetForecastBtn').classList.toggle('hidden', isViewer);
+            }
+
+            // ============================================================
+            // 15. برچسب نقش برای نوار بالا
+            // ============================================================
+            function roleBadgeText() {
+                if (currentRole === 'admin') return `🛠 ${currentUserName || 'مدیر'}`;
+                if (currentRole === 'viewer') return `👁️ ${currentUserName || 'ناظر'}`;
+                return `👤 ${currentUserName || 'کاربر'}`;
+            }
+
+            // ============================================================
+            // 16. مقداردهی اولیه اپلیکیشن (async)
+            // ============================================================
+            async function initApp() {
+                document.getElementById('loginPage').classList.add('hidden');
+                document.getElementById('userPanel').classList.add('hidden');
+                document.getElementById('adminPanel').classList.add('hidden');
+
+                if (!currentToken || !currentRole) {
+                    document.getElementById('loginPage').classList.remove('hidden');
+                    document.getElementById('tokenInput').value = '';
+                    clearMsg(document.getElementById('loginMsg'));
+                    return;
+                }
+
+                if (currentRole === 'admin' || currentRole === 'viewer') {
+                    document.getElementById('adminPanel').classList.remove('hidden');
+                    document.getElementById('adminRoleBadge').textContent = roleBadgeText();
+                    document.getElementById('adminRoleBadge').className =
+                        'role-badge ' + (currentRole === 'viewer' ? 'badge-viewer' : 'badge-admin');
+
+                    // بارگذاری موجودی از سرور
+                    try {
+                        const serverStock = await apiGet('get_stock.php');
+                        Object.assign(stock, serverStock);
+                    } catch (_) {}
+
+                    // بارگذاری پیش‌بینی از سرور
+                    try {
+                        const serverForecast = await apiGet('get_forecast.php');
+                        forecast = serverForecast;
+                    } catch (_) {
+                        initForecast(); // fallback به پیش‌فرض
+                    }
+
+                    renderForecastTable();
+                    await renderAllOrders();
+                    updateAdminStockDisplay();
+                    applyRolePermissions();
+
+                } else if (currentRole === 'user') {
+                    document.getElementById('userPanel').classList.remove('hidden');
+                    document.getElementById('userRoleBadge').textContent = roleBadgeText();
+                    setDefaultDate();
+                    await renderMyOrders();
+                }
+            }
+
+            // ============================================================
+            // 17. اتصال رویدادها با addEventListener
+            // ============================================================
+            function bindEvents() {
+                document.getElementById('loginBtn').addEventListener('click', login);
+                document.getElementById('logoutUserBtn').addEventListener('click', logout);
+                document.getElementById('logoutAdminBtn').addEventListener('click', logout);
+                document.getElementById('submitOrderBtn').addEventListener('click', submitOrder);
+                document.getElementById('setStockBtn').addEventListener('click', setStock);
+                document.getElementById('saveForecastBtn').addEventListener('click', saveForecast);
+                document.getElementById('renderForecastBtn').addEventListener('click', renderForecastTable);
+                document.getElementById('resetForecastBtn').addEventListener('click', resetForecast);
+
+                document.getElementById('tokenInput').addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') login();
+                });
+
+                const orderDateInput = document.getElementById('orderDate');
+                if (orderDateInput) {
+                    orderDateInput.addEventListener('change', updateOrderDatePreview);
+                }
+            }
+
+            // ============================================================
+            // 18. اجرای اولیه (async)
+            // ============================================================
+            (async () => {
+                bindEvents();
+                await tryAutoLogin();
+                await initApp();
+            })();
+
+        })();
+    </script>
+
+</body>
+</html>
