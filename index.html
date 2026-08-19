@@ -186,6 +186,46 @@
         .stock-zero { color: #ef4444; font-weight: bold; }
         .stock-available { color: #16a34a; font-weight: bold; }
 
+        .token-result {
+            margin-top: 12px;
+            padding: 14px;
+            background: #ecfdf5;
+            border: 1px solid #86efac;
+            border-radius: 12px;
+            font-size: 13px;
+            word-break: break-all;
+        }
+        .token-result code {
+            display: block;
+            margin-top: 8px;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 13px;
+            direction: ltr;
+            text-align: left;
+        }
+        .token-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        .token-item code {
+            display: block;
+            margin-top: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            direction: ltr;
+            text-align: left;
+            word-break: break-all;
+            color: #334155;
+        }
+        .token-inactive { opacity: 0.5; }
+
         /* ---------- جدول‌های سفارش به صورت کارت روی موبایل ---------- */
         .orders-table { width: 100%; border-collapse: collapse; font-size: 14px; }
         .orders-table th {
@@ -428,6 +468,32 @@
                     <div id="forecastMsg" class="mt-2"></div>
                 </div>
 
+                <!-- مدیریت توکن‌ها (فقط مدیر) -->
+                <div id="tokenMgmtCard" class="card hidden">
+                    <h3>🔑 مدیریت توکن‌ها</h3>
+                    <p class="text-sm">توکن جدید بسازید و به کاربران بدهید. هر توکن یک‌بار در زمان ساخت نمایش داده می‌شود.</p>
+                    <div class="row">
+                        <div>
+                            <label>نام کاربر</label>
+                            <input type="text" id="newTokenName" placeholder="مثلاً علی احمدی" />
+                        </div>
+                        <div>
+                            <label>نقش</label>
+                            <select id="newTokenRole">
+                                <option value="user">کاربر (ثبت سفارش)</option>
+                                <option value="viewer">ناظر (فقط مشاهده)</option>
+                                <option value="admin">مدیر (دسترسی کامل)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button id="createTokenBtn" class="btn-success">➕ ساخت توکن جدید</button>
+                    <div id="createTokenMsg" class="mt-2"></div>
+                    <div id="newTokenResult" class="token-result hidden"></div>
+                    <hr style="margin:16px 0;border:none;border-top:1px solid #e2e8f0;" />
+                    <h4 style="font-size:14px;margin-bottom:8px;">توکن‌های موجود</h4>
+                    <div id="tokenList"><p class="text-sm">در حال بارگذاری...</p></div>
+                </div>
+
                 <!-- همه سفارشات -->
                 <div class="card">
                     <h3>📋 همه سفارشات</h3>
@@ -448,7 +514,7 @@
             // 1. تنظیمات API و داده‌های محلی
             // آدرس بک‌اند خود را اینجا وارد کنید:
             // ============================================================
-            const API_BASE = 'http://192.168.100.27/hirbad/api'; // ← آدرس هاست خود را اینجا بگذارید
+            const API_BASE = 'http://192.168.100.25/hirbad/api'; // ← سرور لینوکس محلی
 
             const TOKEN_STORAGE_KEY = 'hirbad-salt-token';
 
@@ -888,8 +954,10 @@
             // ============================================================
             function applyRolePermissions() {
                 const isViewer = currentRole === 'viewer';
+                const isAdmin  = currentRole === 'admin';
 
                 document.getElementById('viewerNotice').classList.toggle('hidden', !isViewer);
+                document.getElementById('tokenMgmtCard').classList.toggle('hidden', !isAdmin);
 
                 // بخش تنظیم موجودی
                 document.getElementById('stockType').disabled = isViewer;
@@ -899,6 +967,78 @@
                 // بخش پیش‌بینی
                 document.getElementById('saveForecastBtn').classList.toggle('hidden', isViewer);
                 document.getElementById('resetForecastBtn').classList.toggle('hidden', isViewer);
+            }
+
+            // ============================================================
+            // 14b. مدیریت توکن‌ها (فقط مدیر)
+            // ============================================================
+            function roleLabel(role) {
+                if (role === 'admin')  return 'مدیر';
+                if (role === 'viewer') return 'ناظر';
+                return 'کاربر';
+            }
+
+            async function renderTokenList() {
+                if (currentRole !== 'admin') return;
+                const container = document.getElementById('tokenList');
+                container.innerHTML = '<p class="text-sm">در حال بارگذاری...</p>';
+
+                try {
+                    const list = await apiGet('list_tokens.php');
+                    if (!list.length) {
+                        container.innerHTML = '<p class="text-sm">هیچ توکنی ثبت نشده است.</p>';
+                        return;
+                    }
+                    container.innerHTML = list.map(u => `
+                        <div class="token-item ${u.is_active == 0 ? 'token-inactive' : ''}">
+                            <strong>${u.name}</strong>
+                            <span class="badge ${u.role === 'admin' ? 'badge-admin' : u.role === 'viewer' ? 'badge-viewer' : ''}">${roleLabel(u.role)}</span>
+                            ${u.is_active == 0 ? '<span class="badge" style="background:#fee2e2;color:#991b1b;">غیرفعال</span>' : ''}
+                            <code>${u.token}</code>
+                        </div>
+                    `).join('');
+                } catch (err) {
+                    container.innerHTML = `<p class="text-sm" style="color:#991b1b;">❌ ${err.message}</p>`;
+                }
+            }
+
+            async function createToken() {
+                if (currentRole !== 'admin') return;
+
+                const nameInput = document.getElementById('newTokenName');
+                const roleSelect = document.getElementById('newTokenRole');
+                const msg = document.getElementById('createTokenMsg');
+                const resultBox = document.getElementById('newTokenResult');
+                const btn = document.getElementById('createTokenBtn');
+
+                const name = nameInput.value.trim();
+                const role = roleSelect.value;
+
+                if (!name) {
+                    showMsg(msg, '❌ نام کاربر را وارد کنید.', 'error');
+                    return;
+                }
+
+                btn.disabled = true;
+                clearMsg(msg);
+                resultBox.classList.add('hidden');
+
+                try {
+                    const data = await apiPost('create_token.php', { name, role });
+                    showMsg(msg, '✅ توکن جدید ساخته شد. آن را کپی و در جای امن نگه دارید.', 'success');
+                    resultBox.innerHTML = `
+                        <strong>توکن ${data.name} (${roleLabel(data.role)}):</strong>
+                        <code>${data.token}</code>
+                    `;
+                    resultBox.classList.remove('hidden');
+                    nameInput.value = '';
+                    roleSelect.value = 'user';
+                    await renderTokenList();
+                } catch (err) {
+                    showMsg(msg, `❌ ${err.message}`, 'error');
+                } finally {
+                    btn.disabled = false;
+                }
             }
 
             // ============================================================
@@ -950,6 +1090,10 @@
                     updateAdminStockDisplay();
                     applyRolePermissions();
 
+                    if (currentRole === 'admin') {
+                        await renderTokenList();
+                    }
+
                 } else if (currentRole === 'user') {
                     document.getElementById('userPanel').classList.remove('hidden');
                     document.getElementById('userRoleBadge').textContent = roleBadgeText();
@@ -970,6 +1114,7 @@
                 document.getElementById('saveForecastBtn').addEventListener('click', saveForecast);
                 document.getElementById('renderForecastBtn').addEventListener('click', renderForecastTable);
                 document.getElementById('resetForecastBtn').addEventListener('click', resetForecast);
+                document.getElementById('createTokenBtn').addEventListener('click', createToken);
 
                 document.getElementById('tokenInput').addEventListener('keydown', function(e) {
                     if (e.key === 'Enter') login();

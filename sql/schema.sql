@@ -65,11 +65,11 @@ CREATE TABLE IF NOT EXISTS orders (
 -- داده‌های اولیه (مثال - توکن‌ها را تغییر دهید!)
 -- ============================================================
 INSERT INTO users (token, name, role) VALUES
-    ('ADMIN-TOKEN-CHANGE-ME',  'مدیر اصلی',   'admin'),
-    ('NAZER-TOKEN-CHANGE-ME',  'ناظر',         'viewer'),
-    ('USER1-TOKEN-CHANGE-ME',  'مشتری اول',    'user'),
-    ('USER2-TOKEN-CHANGE-ME',  'مشتری دوم',    'user'),
-    ('USER3-TOKEN-CHANGE-ME',  'مشتری سوم',    'user')
+    ('hrb_a7f3c9e2b1d84f6a0e5c8b3d7f2a941',  'مدیر اصلی',   'admin'),
+    ('hrb_4e8b2a1c9d7f3e6b0a5c8d2f7e9413b',  'ناظر',         'viewer'),
+    ('hrb_9c1d5f8a2b7e4c3d6f0a8b5e2d71394',  'مشتری اول',    'user'),
+    ('hrb_2f7a9c4e8b1d5a3f6c0e9b7d4a82156',  'مشتری دوم',    'user'),
+    ('hrb_6b3e8d1f5a9c2b7e4f0d6a3c8b51479',  'مشتری سوم',    'user')
 ON DUPLICATE KEY UPDATE name = VALUES(name);
 
 -- ============================================================
