@@ -226,6 +226,32 @@
         }
         .token-inactive { opacity: 0.5; }
 
+        .product-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            font-size: 13.5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+        .product-inactive { opacity: 0.5; }
+        .product-price {
+            font-weight: 700;
+            color: #16a34a;
+            direction: ltr;
+        }
+        .product-toggle-btn {
+            width: auto;
+            min-height: 34px;
+            padding: 6px 12px;
+            font-size: 12px;
+            margin: 0;
+        }
+
         /* ---------- جدول‌های سفارش به صورت کارت روی موبایل ---------- */
         .orders-table { width: 100%; border-collapse: collapse; font-size: 14px; }
         .orders-table th {
@@ -356,7 +382,7 @@
                     <h3>🔐 ورود به سیستم</h3>
                     <p class="text-sm">توکن خود را وارد کنید.</p>
                     <label>توکن</label>
-                    <input type="text" id="tokenInput" inputmode="text" autocomplete="off" placeholder="مثال: admin-2564" />
+                    <input type="text" id="tokenInput" inputmode="text" autocomplete="off" placeholder="مثال: abc_00000000000000000000000000000000" />
                     <button id="loginBtn">ورود</button>
                     <div id="loginMsg" class="mt-2"></div>
                 </div>
@@ -376,17 +402,14 @@
                 <div class="card">
                     <h3>📦 ثبت سفارش جدید</h3>
                     <label>نوع نمک</label>
-                    <select id="orderType">
-                        <option value="صورتی">صورتی</option>
-                        <option value="آبی">آبی</option>
-                        <option value="سفید">سفید</option>
-                        <option value="دریایی">دریایی</option>
-                    </select>
+                    <select id="orderType"></select>
+                    <p class="text-sm mt-2" id="orderPricePreview"></p>
                     <label>تعداد</label>
                     <input type="number" id="orderQty" value="1" min="1" inputmode="numeric" />
                     <label>تاریخ دریافت</label>
                     <input type="date" id="orderDate" />
                     <p class="text-sm mt-2" id="orderDatePreview"></p>
+                    <p class="text-sm mt-2" id="orderTotalPreview" style="font-weight:700;color:#16a34a;"></p>
                     <button id="submitOrderBtn" class="btn-success">ثبت سفارش</button>
                     <div id="orderMsg" class="mt-2"></div>
                 </div>
@@ -412,6 +435,27 @@
                     🔒 شما با نقش «ناظر» وارد شده‌اید و فقط امکان مشاهده اطلاعات را دارید؛ امکان تغییر موجودی یا پیش‌بینی برای شما غیرفعال است.
                 </div>
 
+                <!-- مدیریت محصولات و قیمت (فقط مدیر) -->
+                <div id="productMgmtCard" class="card hidden">
+                    <h3>🧂 محصولات و قیمت</h3>
+                    <p class="text-sm">محصول جدید اضافه کنید یا قیمت محصولات فعلی را ویرایش کنید.</p>
+                    <div class="row">
+                        <div>
+                            <label>نام محصول</label>
+                            <input type="text" id="newProductName" placeholder="مثلاً نمک لیمویی" />
+                        </div>
+                        <div>
+                            <label>قیمت (تومان)</label>
+                            <input type="number" id="newProductPrice" min="0" value="0" inputmode="numeric" />
+                        </div>
+                    </div>
+                    <button id="createProductBtn" class="btn-success">➕ افزودن محصول</button>
+                    <div id="createProductMsg" class="mt-2"></div>
+                    <hr style="margin:16px 0;border:none;border-top:1px solid #e2e8f0;" />
+                    <h4 style="font-size:14px;margin-bottom:8px;">محصولات موجود</h4>
+                    <div id="productList"><p class="text-sm">در حال بارگذاری...</p></div>
+                </div>
+
                 <!-- موجودی امروز -->
                 <div class="card">
                     <h3>📊 تنظیم موجودی روزانه (امروز)</h3>
@@ -419,12 +463,7 @@
                     <div class="row">
                         <div>
                             <label>نوع نمک</label>
-                            <select id="stockType">
-                                <option value="صورتی">صورتی</option>
-                                <option value="آبی">آبی</option>
-                                <option value="سفید">سفید</option>
-                                <option value="دریایی">دریایی</option>
-                            </select>
+                            <select id="stockType"></select>
                         </div>
                         <div>
                             <label>تعداد</label>
@@ -448,12 +487,8 @@
                     <div class="scroll-table">
                         <table class="excel-table" id="forecastTable">
                             <thead>
-                                <tr>
+                                <tr id="forecastHeadRow">
                                     <th class="date-col-th">تاریخ</th>
-                                    <th>صورتی</th>
-                                    <th>آبی</th>
-                                    <th>سفید</th>
-                                    <th>دریایی</th>
                                 </tr>
                             </thead>
                             <tbody id="forecastBody"></tbody>
@@ -514,7 +549,7 @@
             // 1. تنظیمات API و داده‌های محلی
             // آدرس بک‌اند خود را اینجا وارد کنید:
             // ============================================================
-            const API_BASE = 'http://192.168.100.25/hirbad/api'; // ← سرور لینوکس محلی
+            const API_BASE = 'http://192.168.100.27/hirbad/api'; // ← سرور لینوکس محلی
 
             const TOKEN_STORAGE_KEY = 'hirbad-salt-token';
 
@@ -523,9 +558,10 @@
             let currentUserName = null;
 
             // کش محلی (پس از fetch از سرور پر می‌شود)
-            let stock    = { 'صورتی': 0, 'آبی': 0, 'سفید': 0, 'دریایی': 0 };
+            let stock    = {};
             let forecast = {};
             let orders   = [];
+            let products = []; // [{id, name, price, is_active}]
 
             // ============================================================
             // 1b. لایه‌ی API — همه تماس‌ها با سرور اینجاست
@@ -570,6 +606,18 @@
 
             function clearMsg(el) {
                 el.innerHTML = '';
+            }
+
+            function formatPrice(n) {
+                return Number(n || 0).toLocaleString('fa-IR');
+            }
+
+            function activeProductNames() {
+                return products.filter(p => Number(p.is_active) === 1).map(p => p.name);
+            }
+
+            function productByName(name) {
+                return products.find(p => p.name === name);
             }
 
             // ---------- تبدیل تاریخ میلادی به شمسی (بدون کتابخانه خارجی) ----------
@@ -626,16 +674,54 @@
             }
 
             // ============================================================
+            // 2b. بارگذاری محصولات از سرور و پر کردن select ها
+            // ============================================================
+            async function loadProducts(includeInactive) {
+                const data = await apiGet('list_products.php' + (includeInactive ? '?all=1' : ''));
+                products = data;
+                return products;
+            }
+
+            function fillProductSelects() {
+                const names = activeProductNames();
+                const orderSel = document.getElementById('orderType');
+                const stockSel = document.getElementById('stockType');
+                const optsHtml = names.map(n => `<option value="${n}">${n}</option>`).join('');
+                if (orderSel) { orderSel.innerHTML = optsHtml; }
+                if (stockSel) { stockSel.innerHTML = optsHtml; }
+                updateOrderPricePreview();
+            }
+
+            function updateOrderPricePreview() {
+                const sel = document.getElementById('orderType');
+                const pricePreview = document.getElementById('orderPricePreview');
+                if (!sel || !pricePreview) return;
+                const p = productByName(sel.value);
+                pricePreview.textContent = p ? `💰 قیمت واحد: ${formatPrice(p.price)} تومان` : '';
+                updateOrderTotalPreview();
+            }
+
+            function updateOrderTotalPreview() {
+                const sel = document.getElementById('orderType');
+                const qtyInput = document.getElementById('orderQty');
+                const totalPreview = document.getElementById('orderTotalPreview');
+                if (!sel || !qtyInput || !totalPreview) return;
+                const p = productByName(sel.value);
+                const qty = parseInt(qtyInput.value) || 0;
+                totalPreview.textContent = p ? `جمع کل: ${formatPrice(p.price * qty)} تومان` : '';
+            }
+
+            // ============================================================
             // 3. مقداردهی اولیه پیش‌بینی
             // ============================================================
             function initForecast() {
                 const today = getToday();
-                const saltTypes = ['صورتی', 'آبی', 'سفید', 'دریایی'];
+                const names = activeProductNames();
                 if (Object.keys(forecast).length === 0) {
                     for (let i = 0; i < 20; i++) {
                         const date = addDays(today, i + 1);
                         forecast[date] = {};
-                        saltTypes.forEach(type => {
+                        names.forEach(type => {
                             forecast[date][type] = 0;
                         });
                     }
@@ -649,8 +735,7 @@
                 const display = document.getElementById('adminStockDisplay');
                 if (display) {
                     let html = '';
-                    const types = ['صورتی', 'آبی', 'سفید', 'دریایی'];
-                    types.forEach(type => {
+                    activeProductNames().forEach(type => {
                         const val = stock[type] || 0;
                         const color = val > 0 ? 'stock-available' : 'stock-zero';
                         html += `<span class="${color}">${type}: ${val}</span> `;
@@ -663,18 +748,24 @@
             // 5. رندر جدول پیش‌بینی
             // ============================================================
             function renderForecastTable() {
+                const names = activeProductNames();
+
+                // سربرگ جدول متناسب با محصولات فعال
+                const headRow = document.getElementById('forecastHeadRow');
+                headRow.innerHTML = '<th class="date-col-th">تاریخ</th>' +
+                    names.map(n => `<th>${n}</th>`).join('');
+
                 if (Object.keys(forecast).length === 0) {
                     initForecast();
                 }
                 const tbody = document.getElementById('forecastBody');
                 let html = '';
                 const dates = Object.keys(forecast).sort();
-                const saltTypes = ['صورتی', 'آبی', 'سفید', 'دریایی'];
                 const isViewer = currentRole === 'viewer';
                 dates.forEach(date => {
                     html += `<tr>`;
                     html += `<td class="date-col">${toJalaliString(date)}</td>`;
-                    saltTypes.forEach(type => {
+                    names.forEach(type => {
                         const val = forecast[date]?.[type] ?? 0;
                         html += `<td>
                                     <input type="number" min="0" class="forecast-input"
@@ -728,10 +819,10 @@
                 if (currentRole === 'viewer') return;
                 if (!confirm('همه مقادیر پیش‌بینی به صفر می‌روند. ادامه می‌دهید؟')) return;
                 const dates = Object.keys(forecast);
-                const saltTypes = ['صورتی', 'آبی', 'سفید', 'دریایی'];
+                const names = activeProductNames();
                 dates.forEach(date => {
                     forecast[date] = {};
-                    saltTypes.forEach(type => {
+                    names.forEach(type => {
                         forecast[date][type] = 0;
                     });
                 });
@@ -781,9 +872,10 @@
                 currentToken    = null;
                 currentRole     = null;
                 currentUserName = null;
-                stock           = { 'صورتی': 0, 'آبی': 0, 'سفید': 0, 'دریایی': 0 };
+                stock           = {};
                 forecast        = {};
                 orders          = [];
+                products        = [];
                 try { localStorage.removeItem(TOKEN_STORAGE_KEY); } catch (e) {}
                 initApp();
             }
@@ -814,6 +906,7 @@
                 const msg  = document.getElementById('orderMsg');
                 const btn  = document.getElementById('submitOrderBtn');
 
+                if (!type)            { showMsg(msg, 'محصولی برای سفارش موجود نیست.', 'error'); return; }
                 if (!qty || qty < 1) { showMsg(msg, 'تعداد معتبر وارد کنید.', 'error'); return; }
                 if (!date)           { showMsg(msg, 'تاریخ دریافت را انتخاب کنید.', 'error'); return; }
 
@@ -851,11 +944,13 @@
                     }
                     const statusMap = { confirmed: 'تأیید شده', pending: 'در انتظار', rejected: 'رد شده' };
                     let html = `<table class="orders-table">
-                        <thead><tr><th>نوع</th><th>تعداد</th><th>تاریخ دریافت</th><th>وضعیت</th></tr></thead><tbody>`;
+                        <thead><tr><th>نوع</th><th>تعداد</th><th>قیمت واحد</th><th>جمع</th><th>تاریخ دریافت</th><th>وضعیت</th></tr></thead><tbody>`;
                     userOrders.forEach(o => {
                         html += `<tr>
                             <td data-label="نوع">${o.salt_type}</td>
                             <td data-label="تعداد">${o.quantity}</td>
+                            <td data-label="قیمت واحد">${formatPrice(o.unit_price)} ت</td>
+                            <td data-label="جمع">${formatPrice(o.total_price)} ت</td>
                             <td data-label="تاریخ دریافت">${toJalaliString(o.delivery_date)}</td>
                             <td data-label="وضعیت">${statusMap[o.status] || o.status}</td>
                         </tr>`;
@@ -881,12 +976,14 @@
                     }
                     const statusMap = { confirmed: 'تأیید شده', pending: 'در انتظار', rejected: 'رد شده' };
                     let html = `<table class="orders-table">
-                        <thead><tr><th>کاربر</th><th>نوع</th><th>تعداد</th><th>تاریخ دریافت</th><th>وضعیت</th></tr></thead><tbody>`;
+                        <thead><tr><th>کاربر</th><th>نوع</th><th>تعداد</th><th>قیمت واحد</th><th>جمع</th><th>تاریخ دریافت</th><th>وضعیت</th></tr></thead><tbody>`;
                     allOrders.forEach(o => {
                         html += `<tr>
                             <td data-label="کاربر">${o.user_name}</td>
                             <td data-label="نوع">${o.salt_type}</td>
                             <td data-label="تعداد">${o.quantity}</td>
+                            <td data-label="قیمت واحد">${formatPrice(o.unit_price)} ت</td>
+                            <td data-label="جمع">${formatPrice(o.total_price)} ت</td>
                             <td data-label="تاریخ دریافت">${toJalaliString(o.delivery_date)}</td>
                             <td data-label="وضعیت">${statusMap[o.status] || o.status}</td>
                         </tr>`;
@@ -929,6 +1026,86 @@
             }
 
             // ============================================================
+            // 12b. مدیریت محصولات و قیمت (فقط مدیر)
+            // ============================================================
+            async function renderProductList() {
+                if (currentRole !== 'admin') return;
+                const container = document.getElementById('productList');
+                container.innerHTML = '<p class="text-sm">در حال بارگذاری...</p>';
+                try {
+                    const list = await loadProducts(true); // شامل غیرفعال‌ها برای مدیریت
+                    if (!list.length) {
+                        container.innerHTML = '<p class="text-sm">هیچ محصولی ثبت نشده است.</p>';
+                        return;
+                    }
+                    container.innerHTML = list.map(p => `
+                        <div class="product-item ${Number(p.is_active) === 0 ? 'product-inactive' : ''}">
+                            <div>
+                                <strong>${p.name}</strong>
+                                <span class="product-price">${formatPrice(p.price)} ت</span>
+                            </div>
+                            <button class="product-toggle-btn ${Number(p.is_active) === 1 ? 'btn-danger' : 'btn-success'}"
+                                    data-id="${p.id}" data-active="${p.is_active}">
+                                ${Number(p.is_active) === 1 ? 'غیرفعال' : 'فعال'}
+                            </button>
+                        </div>
+                    `).join('');
+
+                    container.querySelectorAll('.product-toggle-btn').forEach(btn => {
+                        btn.addEventListener('click', () => toggleProduct(btn.dataset.id, btn.dataset.active));
+                    });
+
+                    fillProductSelects();
+                } catch (err) {
+                    container.innerHTML = `<p class="text-sm" style="color:#991b1b;">❌ ${err.message}</p>`;
+                }
+            }
+
+            async function createProduct() {
+                if (currentRole !== 'admin') return;
+                const nameInput  = document.getElementById('newProductName');
+                const priceInput = document.getElementById('newProductPrice');
+                const msg = document.getElementById('createProductMsg');
+                const btn = document.getElementById('createProductBtn');
+
+                const name  = nameInput.value.trim();
+                const price = parseInt(priceInput.value);
+
+                if (!name) { showMsg(msg, '❌ نام محصول را وارد کنید.', 'error'); return; }
+                if (isNaN(price) || price < 0) { showMsg(msg, '❌ قیمت معتبر وارد کنید.', 'error'); return; }
+
+                btn.disabled = true;
+                clearMsg(msg);
+
+                try {
+                    await apiPost('create_product.php', { name, price });
+                    showMsg(msg, '✅ محصول اضافه شد.', 'success');
+                    nameInput.value = '';
+                    priceInput.value = '0';
+                    await renderProductList();
+                    renderForecastTable();
+                    updateAdminStockDisplay();
+                } catch (err) {
+                    showMsg(msg, `❌ ${err.message}`, 'error');
+                } finally {
+                    btn.disabled = false;
+                }
+            }
+
+            async function toggleProduct(id, currentActive) {
+                if (currentRole !== 'admin') return;
+                const newActive = Number(currentActive) === 1 ? 0 : 1;
+                try {
+                    await apiPost('update_product.php', { id: Number(id), is_active: newActive });
+                    await renderProductList();
+                    renderForecastTable();
+                    updateAdminStockDisplay();
+                } catch (err) {
+                    alert('خطا: ' + err.message);
+                }
+            }
+
+            // ============================================================
             // 13. مقداردهی اولیه تاریخ
             // ============================================================
             function setDefaultDate() {
@@ -958,6 +1135,7 @@
 
                 document.getElementById('viewerNotice').classList.toggle('hidden', !isViewer);
                 document.getElementById('tokenMgmtCard').classList.toggle('hidden', !isAdmin);
+                document.getElementById('productMgmtCard').classList.toggle('hidden', !isAdmin);
 
                 // بخش تنظیم موجودی
                 document.getElementById('stockType').disabled = isViewer;
@@ -1071,6 +1249,12 @@
                     document.getElementById('adminRoleBadge').className =
                         'role-badge ' + (currentRole === 'viewer' ? 'badge-viewer' : 'badge-admin');
 
+                    // بارگذاری محصولات (شامل غیرفعال برای مدیر)
+                    try {
+                        await loadProducts(currentRole === 'admin');
+                    } catch (_) {}
+                    fillProductSelects();
+
                     // بارگذاری موجودی از سرور
                     try {
                         const serverStock = await apiGet('get_stock.php');
@@ -1092,11 +1276,16 @@
 
                     if (currentRole === 'admin') {
                         await renderTokenList();
+                        await renderProductList();
                     }
 
                 } else if (currentRole === 'user') {
                     document.getElementById('userPanel').classList.remove('hidden');
                     document.getElementById('userRoleBadge').textContent = roleBadgeText();
+                    try {
+                        await loadProducts(false);
+                    } catch (_) {}
+                    fillProductSelects();
                     setDefaultDate();
                     await renderMyOrders();
                 }
@@ -1115,6 +1304,7 @@
                 document.getElementById('renderForecastBtn').addEventListener('click', renderForecastTable);
                 document.getElementById('resetForecastBtn').addEventListener('click', resetForecast);
                 document.getElementById('createTokenBtn').addEventListener('click', createToken);
+                document.getElementById('createProductBtn').addEventListener('click', createProduct);
 
                 document.getElementById('tokenInput').addEventListener('keydown', function(e) {
                     if (e.key === 'Enter') login();
@@ -1123,6 +1313,14 @@
                 const orderDateInput = document.getElementById('orderDate');
                 if (orderDateInput) {
                     orderDateInput.addEventListener('change', updateOrderDatePreview);
+                }
+                const orderTypeSelect = document.getElementById('orderType');
+                if (orderTypeSelect) {
+                    orderTypeSelect.addEventListener('change', updateOrderPricePreview);
+                }
+                const orderQtyInput = document.getElementById('orderQty');
+                if (orderQtyInput) {
+                    orderQtyInput.addEventListener('input', updateOrderTotalPreview);
                 }
             }
 

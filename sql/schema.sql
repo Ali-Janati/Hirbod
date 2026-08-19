@@ -84,3 +84,38 @@ FROM (
     SELECT 'دریایی'
 ) t
 ON DUPLICATE KEY UPDATE quantity = quantity;
+
+-- جدول محصولات را بسازید
+CREATE TABLE IF NOT EXISTS products (
+    id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name       VARCHAR(50) NOT NULL UNIQUE,
+    price      DECIMAL(10,2) DEFAULT 0,
+    is_active  TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- محصولات پایه را اضافه کنید
+INSERT INTO products (name, price, is_active) VALUES
+    ('صورتی', 25000, 1),
+    ('آبی', 28000, 1),
+    ('سفید', 22000, 1),
+    ('دریایی', 35000, 1)
+ON DUPLICATE KEY UPDATE name = name;
+
+-- محصول جدید خود را اضافه کنید
+INSERT INTO products (name, price, is_active) VALUES 
+    ('نام_محصول_شما', 30000, 1)
+ON DUPLICATE KEY UPDATE name = name;
+
+-- اضافه کردن یک محصول جدید
+INSERT INTO products (name, price, is_active) VALUES 
+    ('نمک دریاچه', 38000, 1);
+
+-- اضافه کردن چند محصول با هم
+INSERT INTO products (name, price, is_active) VALUES 
+    ('نمک سیاه', 45000, 1),
+    ('نمک لیمو', 32000, 1),
+    ('نمک سیر', 29000, 1)
+ON DUPLICATE KEY UPDATE 
+    price = VALUES(price),
+    is_active = VALUES(is_active);

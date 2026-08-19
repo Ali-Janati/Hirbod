@@ -121,3 +121,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 setJsonHeaders();
+
+// ============================================================
+// این توابع را به انتهای فایل config/db.php موجودتان اضافه کنید
+// (قبل از خط "setJsonHeaders();" در انتهای فایل بگذارید یا بعدش، فرقی ندارد)
+// ============================================================
+
+/**
+ * لیست محصولات فعال (برای اعتبارسنجی سفارش و پر کردن select ها)
+ */
+function getActiveProducts(): array {
+    $pdo = getDB();
+    $stmt = $pdo->query('SELECT id, name, price FROM products WHERE is_active = 1 ORDER BY id ASC');
+    return $stmt->fetchAll();
+}
+
+/**
+ * فقط اسم محصولات فعال (برای بررسی نوع نمک معتبر)
+ */
+function getActiveProductNames(): array {
+    return array_column(getActiveProducts(), 'name');
+}
+
+/**
+ * گرفتن یک محصول فعال بر اساس نام (برای گرفتن قیمت هنگام ثبت سفارش)
+ */
+function getActiveProductByName(string $name): ?array {
+    $pdo = getDB();
+    $stmt = $pdo->prepare('SELECT id, name, price FROM products WHERE name = ? AND is_active = 1 LIMIT 1');
+    $stmt->execute([$name]);
+    $row = $stmt->fetch();
+    return $row ?: null;
+}

@@ -24,10 +24,9 @@ $saltType     = trim($body['salt_type'] ?? '');
 $quantity     = isset($body['quantity']) ? (int)$body['quantity'] : 0;
 $deliveryDate = trim($body['delivery_date'] ?? '');
 
-// اعتبارسنجی
-$validTypes = ['صورتی', 'آبی', 'سفید', 'دریایی'];
-if (!in_array($saltType, $validTypes, true)) {
-    jsonError('نوع نمک نامعتبر است.');
+// اعتبارسنجی اولیه
+if (empty($saltType)) {
+    jsonError('نوع نمک نمی‌تواند خالی باشد.');
 }
 if ($quantity < 1) {
     jsonError('تعداد باید حداقل ۱ باشد.');
@@ -40,6 +39,21 @@ if ($deliveryDate < date('Y-m-d')) {
 }
 
 $pdo = getDB();
+
+// ============================================================
+// بررسی وجود محصول در جدول products (داینامیک)
+// ============================================================
+try {
+    $stmt = $pdo->prepare("SELECT id, name, price, is_active FROM products WHERE name = ? AND is_active = 1");
+    $stmt->execute([$saltType]);
+    $product = $stmt->fetch();
+    
+    if (!$product) {
+        jsonError('نوع نمک نامعتبر است. لطفاً محصول معتبر انتخاب کنید.');
+    }
+} catch (PDOException $e) {
+    jsonError('خطا در بررسی محصول: ' . $e->getMessage(), 500);
+}
 
 // ============================================================
 // تراکنش: بررسی موجودی + کسر + ثبت سفارش — همه یا هیچ
@@ -61,7 +75,7 @@ try {
 
     if ($available < $quantity) {
         $pdo->rollBack();
-        jsonError('موجودی کافی نیست. لطفاً تاریخ یا تعداد را تغییر دهید.');
+        jsonError('موجودی کافی نیست. موجودی فعلی: ' . $available . ' - درخواستی: ' . $quantity);
     }
 
     // کسر موجودی (با شرط quantity >= برای جلوگیری از race condition)
@@ -86,15 +100,34 @@ try {
 
     $pdo->commit();
 
+    // دریافت اطلاعات کامل سفارش
+    $stmt = $pdo->prepare("
+        SELECT o.*, u.name as user_name 
+        FROM orders o
+        JOIN users u ON u.id = o.user_id
+        WHERE o.id = ?
+    ");
+    $stmt->execute([$orderId]);
+    $order = $stmt->fetch();
+
     jsonOk([
         'order_id'      => (int)$orderId,
         'salt_type'     => $saltType,
         'quantity'      => $quantity,
         'delivery_date' => $deliveryDate,
         'status'        => 'confirmed',
-    ], "سفارش {$quantity} عدد {$saltType} ثبت شد.");
+        'user'          => $user['name'],
+        'product_price' => $product['price'],
+        'total_price'   => $product['price'] * $quantity,
+        'remaining_stock' => $available - $quantity
+    ], "سفارش {$quantity} عدد {$saltType} با موفقیت ثبت شد.");
 
+} catch (PDOException $e) {
+    $pdo->rollBack();
+    error_log('Database error in submit_order.php: ' . $e->getMessage());
+    jsonError('خطای سرور. لطفاً دوباره تلاش کنید.', 500);
 } catch (Throwable $e) {
     $pdo->rollBack();
     jsonError('خطای سرور. لطفاً دوباره تلاش کنید.', 500);
 }
+?>
