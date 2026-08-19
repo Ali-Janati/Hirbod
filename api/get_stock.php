@@ -21,17 +21,13 @@ $stmt = $pdo->prepare(
 $stmt->execute();
 $rows = $stmt->fetchAll();
 
-// تبدیل به آبجکت ساده: { "صورتی": 30, ... }
-$stock = [];
-$saltTypes = ['صورتی', 'آبی', 'سفید', 'دریایی'];
-
-// مقدار پیش‌فرض صفر برای همه نمک‌ها
-foreach ($saltTypes as $type) {
-    $stock[$type] = 0;
-}
+// مقدار پیش‌فرض صفر برای همه محصولات فعال (به‌جای آرایه ثابت قبلی)
+$stock = array_fill_keys(getActiveProductNames(), 0);
 
 foreach ($rows as $row) {
-    $stock[$row['salt_type']] = (int)$row['quantity'];
+    if (array_key_exists($row['salt_type'], $stock)) {
+        $stock[$row['salt_type']] = (int)$row['quantity'];
+    }
 }
 
 jsonOk($stock);

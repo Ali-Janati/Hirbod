@@ -2,8 +2,7 @@
 // ============================================================
 // GET /api/all_orders.php?token=XXX[&date=2025-08-20][&salt_type=صورتی]
 // همه سفارشات — فقط مدیر و ناظر
-// فیلترهای اختیاری: date, salt_type
-// Response: { success, data: [ { id, user_name, salt_type, quantity, delivery_date, status, order_date } ] }
+// Response: { success, data: [ { id, user_name, salt_type, quantity, unit_price, total_price, delivery_date, status, order_date } ] }
 // ============================================================
 
 require_once __DIR__ . '/../config/db.php';
@@ -14,11 +13,10 @@ if ($user['role'] === 'user') {
     jsonError('دسترسی ندارید.', 403);
 }
 
-// فیلترهای اختیاری
 $filterDate     = trim($_GET['date'] ?? '');
 $filterSaltType = trim($_GET['salt_type'] ?? '');
 
-$sql    = 'SELECT o.id, u.name AS user_name, o.salt_type, o.quantity,
+$sql    = 'SELECT o.id, u.name AS user_name, o.salt_type, o.quantity, o.unit_price, o.total_price,
                   o.delivery_date, o.status,
                   DATE_FORMAT(o.order_date, "%Y-%m-%d") AS order_date
            FROM orders o
@@ -43,8 +41,10 @@ $stmt->execute($params);
 $orders = $stmt->fetchAll();
 
 foreach ($orders as &$o) {
-    $o['id']       = (int)$o['id'];
-    $o['quantity'] = (int)$o['quantity'];
+    $o['id']          = (int)$o['id'];
+    $o['quantity']    = (int)$o['quantity'];
+    $o['unit_price']  = (int)$o['unit_price'];
+    $o['total_price'] = (int)$o['total_price'];
 }
 unset($o);
 

@@ -27,8 +27,6 @@
             margin: 0 auto;
             width: 100%;
         }
-
-        /* هدر بالای صفحه، همیشه ثابت */
         .topbar {
             position: sticky;
             top: 0;
@@ -70,13 +68,10 @@
             margin: 0;
         }
         .logout-btn:active { background: rgba(255,255,255,0.3); }
-
         .page-content {
             padding: 16px;
         }
-
         .hidden { display: none !important; }
-
         .card {
             background: white;
             border-radius: 16px;
@@ -89,7 +84,6 @@
             font-size: 16px;
             margin-bottom: 6px;
         }
-
         label {
             display: block;
             font-weight: 600;
@@ -103,7 +97,7 @@
             padding: 14px 16px;
             border-radius: 12px;
             border: 1px solid #cbd5e1;
-            font-size: 16px; /* جلوگیری از زوم خودکار در آیفون */
+            font-size: 16px;
             background: white;
             transition: 0.15s;
             min-height: 50px;
@@ -118,7 +112,6 @@
             color: #94a3b8;
             cursor: not-allowed;
         }
-
         button {
             background: #3b82f6;
             color: white;
@@ -135,10 +128,8 @@
             border: 2px solid #3b82f6;
         }
         .btn-success { background: #22c55e; }
-
         .row { display: flex; gap: 10px; flex-wrap: wrap; }
         .row > * { flex: 1; min-width: 130px; }
-
         .badge {
             display: inline-block;
             background: #e2e8f0;
@@ -150,7 +141,6 @@
         }
         .badge-viewer { background: #fef3c7; color: #92400e; }
         .badge-admin { background: #dbeafe; color: #1e40af; }
-
         .notice-viewer {
             background: #fef3c7;
             color: #92400e;
@@ -161,7 +151,6 @@
             font-weight: 600;
             margin-bottom: 16px;
         }
-
         .msg {
             padding: 12px 14px;
             border-radius: 12px;
@@ -171,11 +160,9 @@
         }
         .msg-success { background: #dcfce7; color: #166534; }
         .msg-error { background: #fee2e2; color: #991b1b; }
-
         .flex-between { display: flex; justify-content: space-between; align-items: center; }
         .mt-2 { margin-top: 12px; }
         .text-sm { font-size: 13px; color: #64748b; }
-
         .stock-box {
             margin-top: 12px;
             background: #f1f5f9;
@@ -185,7 +172,6 @@
         .stock-box .text-sm { font-size: 13.5px; }
         .stock-zero { color: #ef4444; font-weight: bold; }
         .stock-available { color: #16a34a; font-weight: bold; }
-
         .token-result {
             margin-top: 12px;
             padding: 14px;
@@ -225,7 +211,6 @@
             color: #334155;
         }
         .token-inactive { opacity: 0.5; }
-
         .product-item {
             background: #f8fafc;
             border: 1px solid #e2e8f0;
@@ -251,11 +236,9 @@
             font-size: 12px;
             margin: 0;
         }
-
-        /* ---------- جدول‌های سفارش به صورت کارت روی موبایل ---------- */
         .orders-table { width: 100%; border-collapse: collapse; font-size: 14px; }
         .orders-table th {
-            display: none; /* سربرگ‌ها روی موبایل مخفی */
+            display: none;
         }
         .orders-table tr {
             display: block;
@@ -302,8 +285,6 @@
             }
             .orders-table td::before { content: none; }
         }
-
-        /* ---------- جدول پیش‌بینی: اسکرول افقی با ستون تاریخ ثابت ---------- */
         .scroll-table {
             overflow-x: auto;
             margin-top: 12px;
@@ -363,7 +344,6 @@
             color: #94a3b8;
             margin-top: 6px;
         }
-
         .btn-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
         .btn-group button { flex: 1; min-width: 100px; margin-top: 0; }
     </style>
@@ -435,7 +415,6 @@
                     🔒 شما با نقش «ناظر» وارد شده‌اید و فقط امکان مشاهده اطلاعات را دارید؛ امکان تغییر موجودی یا پیش‌بینی برای شما غیرفعال است.
                 </div>
 
-                <!-- مدیریت محصولات و قیمت (فقط مدیر) -->
                 <div id="productMgmtCard" class="card hidden">
                     <h3>🧂 محصولات و قیمت</h3>
                     <p class="text-sm">محصول جدید اضافه کنید یا قیمت محصولات فعلی را ویرایش کنید.</p>
@@ -456,7 +435,6 @@
                     <div id="productList"><p class="text-sm">در حال بارگذاری...</p></div>
                 </div>
 
-                <!-- موجودی امروز -->
                 <div class="card">
                     <h3>📊 تنظیم موجودی روزانه (امروز)</h3>
                     <p class="text-sm">همه مقادیر پیش‌فرض <strong>۰</strong> هستند.</p>
@@ -480,7 +458,6 @@
                     </div>
                 </div>
 
-                <!-- پیش‌بینی ۲۰ روزه -->
                 <div class="card">
                     <h3>📈 پیش‌بینی ۲۰ روز آینده</h3>
                     <p class="text-sm">برای هر روز و هر نوع نمک، مقدار موجودی دستی وارد می‌شود. همه مقادیر پیش‌فرض ۰ هستند.</p>
@@ -503,7 +480,6 @@
                     <div id="forecastMsg" class="mt-2"></div>
                 </div>
 
-                <!-- مدیریت توکن‌ها (فقط مدیر) -->
                 <div id="tokenMgmtCard" class="card hidden">
                     <h3>🔑 مدیریت توکن‌ها</h3>
                     <p class="text-sm">توکن جدید بسازید و به کاربران بدهید. هر توکن یک‌بار در زمان ساخت نمایش داده می‌شود.</p>
@@ -529,7 +505,6 @@
                     <div id="tokenList"><p class="text-sm">در حال بارگذاری...</p></div>
                 </div>
 
-                <!-- همه سفارشات -->
                 <div class="card">
                     <h3>📋 همه سفارشات</h3>
                     <div id="allOrdersList"><p class="text-sm">هیچ سفارشی ثبت نشده است.</p></div>
@@ -538,53 +513,69 @@
         </div>
     </div>
 
-    <!-- ============================================================ -->
-    <!-- جاوااسکریپت با addEventListener -->
-    <!-- ============================================================ -->
     <script>
         (function() {
             'use strict';
 
-            // ============================================================
-            // 1. تنظیمات API و داده‌های محلی
-            // آدرس بک‌اند خود را اینجا وارد کنید:
-            // ============================================================
-            const API_BASE = 'http://192.168.100.27/hirbad/api'; // ← سرور لینوکس محلی
-
+            const API_BASE = 'http://192.168.100.27/hirbod/api';
             const TOKEN_STORAGE_KEY = 'hirbad-salt-token';
 
             let currentToken = null;
             let currentRole  = null;
             let currentUserName = null;
 
-            // کش محلی (پس از fetch از سرور پر می‌شود)
             let stock    = {};
             let forecast = {};
             let orders   = [];
-            let products = []; // [{id, name, price, is_active}]
+            let products = [];
 
             // ============================================================
-            // 1b. لایه‌ی API — همه تماس‌ها با سرور اینجاست
+            // 1b. لایه‌ی API — تفکیک GET و POST
             // ============================================================
             async function apiGet(endpoint) {
-                const sep = endpoint.includes('?') ? '&' : '?';
-                const url = `${API_BASE}/${endpoint}${sep}token=${encodeURIComponent(currentToken)}`;
-                const res  = await fetch(url);
-                const data = await res.json();
-                if (!data.success) throw new Error(data.message || 'خطای سرور');
-                return data.data;
+                // توکن رو به URL اضافه کن (برای PHPهایی که از $_GET استفاده می‌کنن)
+                let url = `${API_BASE}/${endpoint}`;
+                if (!endpoint.includes('?')) {
+                    url += '?';
+                } else {
+                    url += '&';
+                }
+                url += `token=${encodeURIComponent(currentToken)}`;
+
+                const res = await fetch(url, { method: 'GET' });
+                const text = await res.text();
+                try {
+                    const data = JSON.parse(text);
+                    if (!data.success) throw new Error(data.message || 'خطای سرور');
+                    return data.data;
+                } catch (e) {
+                    throw new Error(`سرور JSON برنگردوند. متن پاسخ: ${text.substring(0, 150)}`);
+                }
             }
 
             async function apiPost(endpoint, body = {}) {
-                const url  = `${API_BASE}/${endpoint}`;
-                const res  = await fetch(url, {
-                    method:  'POST',
+                // توکن رو هم به URL اضافه کن (برای PHPهایی که از $_GET می‌خونن)
+                let url = `${API_BASE}/${endpoint}`;
+                if (!endpoint.includes('?')) {
+                    url += '?';
+                } else {
+                    url += '&';
+                }
+                url += `token=${encodeURIComponent(currentToken)}`;
+
+                const res = await fetch(url, {
+                    method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body:    JSON.stringify({ token: currentToken, ...body }),
+                    body: JSON.stringify(body), // توکن رو توی بدنه نمی‌فرستیم (قبلاً در URL هست)
                 });
-                const data = await res.json();
-                if (!data.success) throw new Error(data.message || 'خطای سرور');
-                return data.data;
+                const text = await res.text();
+                try {
+                    const data = JSON.parse(text);
+                    if (!data.success) throw new Error(data.message || 'خطای سرور');
+                    return data.data;
+                } catch (e) {
+                    throw new Error(`سرور JSON برنگردوند. متن پاسخ: ${text.substring(0, 150)}`);
+                }
             }
 
             // ============================================================
@@ -620,7 +611,6 @@
                 return products.find(p => p.name === name);
             }
 
-            // ---------- تبدیل تاریخ میلادی به شمسی (بدون کتابخانه خارجی) ----------
             const JALALI_MONTHS = [
                 'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
                 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'
@@ -674,7 +664,7 @@
             }
 
             // ============================================================
-            // 2b. بارگذاری محصولات از سرور و پر کردن select ها
+            // 2b. بارگذاری محصولات (با GET)
             // ============================================================
             async function loadProducts(includeInactive) {
                 const data = await apiGet('list_products.php' + (includeInactive ? '?all=1' : ''));
@@ -729,7 +719,7 @@
             }
 
             // ============================================================
-            // 4. نمایش موجودی (فقط برای مدیر/ناظر - مشتریان اجازه دیدن موجودی را ندارند)
+            // 4. نمایش موجودی
             // ============================================================
             function updateAdminStockDisplay() {
                 const display = document.getElementById('adminStockDisplay');
@@ -749,8 +739,6 @@
             // ============================================================
             function renderForecastTable() {
                 const names = activeProductNames();
-
-                // سربرگ جدول متناسب با محصولات فعال
                 const headRow = document.getElementById('forecastHeadRow');
                 headRow.innerHTML = '<th class="date-col-th">تاریخ</th>' +
                     names.map(n => `<th>${n}</th>`).join('');
@@ -779,14 +767,13 @@
             }
 
             // ============================================================
-            // 6. ذخیره پیش‌بینی (async — با API)
+            // 6. ذخیره پیش‌بینی (POST)
             // ============================================================
             async function saveForecast() {
                 if (currentRole === 'viewer') return;
                 const msg = document.getElementById('forecastMsg');
                 const btn = document.getElementById('saveForecastBtn');
 
-                // جمع‌آوری مقادیر از جدول
                 const inputs = document.querySelectorAll('.forecast-input');
                 inputs.forEach(input => {
                     const date = input.dataset.date;
@@ -833,7 +820,7 @@
             }
 
             // ============================================================
-            // 8. ورود و خروج (async — با API)
+            // 8. ورود و خروج (POST برای ورود)
             // ============================================================
             async function login() {
                 const input = document.getElementById('tokenInput').value.trim();
@@ -851,7 +838,6 @@
 
                 try {
                     const data = await apiPost('login.php', { token: input });
-                    // data: { id, name, role }
                     currentToken    = input;
                     currentRole     = data.role;
                     currentUserName = data.name;
@@ -891,13 +877,12 @@
                     currentRole     = data.role;
                     currentUserName = data.name;
                 } catch (e) {
-                    // توکن ذخیره‌شده نامعتبر — پاک کن
                     try { localStorage.removeItem(TOKEN_STORAGE_KEY); } catch (_) {}
                 }
             }
 
             // ============================================================
-            // 9. ثبت سفارش (async — با API)
+            // 9. ثبت سفارش (POST)
             // ============================================================
             async function submitOrder() {
                 const type = document.getElementById('orderType').value;
@@ -921,7 +906,7 @@
                         delivery_date: date,
                     });
                     showMsg(msg, `✅ سفارش ${qty} عدد ${type} برای ${toJalaliLongString(date)} ثبت شد.`, 'success');
-                    await renderMyOrders(); // بارگذاری مجدد از سرور
+                    await renderMyOrders();
                 } catch (err) {
                     showMsg(msg, `❌ ${err.message}`, 'error');
                 } finally {
@@ -931,7 +916,7 @@
             }
 
             // ============================================================
-            // 10. رندر سفارشات کاربر (async — از API)
+            // 10. رندر سفارشات کاربر (GET)
             // ============================================================
             async function renderMyOrders() {
                 const container = document.getElementById('myOrdersList');
@@ -963,7 +948,7 @@
             }
 
             // ============================================================
-            // 11. رندر همه سفارشات (پنل مدیر/ناظر — async از API)
+            // 11. رندر همه سفارشات (GET)
             // ============================================================
             async function renderAllOrders() {
                 const container = document.getElementById('allOrdersList');
@@ -996,7 +981,7 @@
             }
 
             // ============================================================
-            // 12. تنظیم موجودی (async — با API)
+            // 12. تنظیم موجودی (POST)
             // ============================================================
             async function setStock() {
                 if (currentRole === 'viewer') return;
@@ -1026,14 +1011,14 @@
             }
 
             // ============================================================
-            // 12b. مدیریت محصولات و قیمت (فقط مدیر)
+            // 12b. مدیریت محصولات و قیمت
             // ============================================================
             async function renderProductList() {
                 if (currentRole !== 'admin') return;
                 const container = document.getElementById('productList');
                 container.innerHTML = '<p class="text-sm">در حال بارگذاری...</p>';
                 try {
-                    const list = await loadProducts(true); // شامل غیرفعال‌ها برای مدیریت
+                    const list = await loadProducts(true);
                     if (!list.length) {
                         container.innerHTML = '<p class="text-sm">هیچ محصولی ثبت نشده است.</p>';
                         return;
@@ -1127,7 +1112,7 @@
             }
 
             // ============================================================
-            // 14. اعمال محدودیت نقش «ناظر» (فقط مشاهده)
+            // 14. اعمال محدودیت نقش «ناظر»
             // ============================================================
             function applyRolePermissions() {
                 const isViewer = currentRole === 'viewer';
@@ -1137,18 +1122,16 @@
                 document.getElementById('tokenMgmtCard').classList.toggle('hidden', !isAdmin);
                 document.getElementById('productMgmtCard').classList.toggle('hidden', !isAdmin);
 
-                // بخش تنظیم موجودی
                 document.getElementById('stockType').disabled = isViewer;
                 document.getElementById('stockQty').disabled = isViewer;
                 document.getElementById('setStockBtn').classList.toggle('hidden', isViewer);
 
-                // بخش پیش‌بینی
                 document.getElementById('saveForecastBtn').classList.toggle('hidden', isViewer);
                 document.getElementById('resetForecastBtn').classList.toggle('hidden', isViewer);
             }
 
             // ============================================================
-            // 14b. مدیریت توکن‌ها (فقط مدیر)
+            // 14b. مدیریت توکن‌ها (GET برای لیست، POST برای ساخت)
             // ============================================================
             function roleLabel(role) {
                 if (role === 'admin')  return 'مدیر';
@@ -1160,7 +1143,6 @@
                 if (currentRole !== 'admin') return;
                 const container = document.getElementById('tokenList');
                 container.innerHTML = '<p class="text-sm">در حال بارگذاری...</p>';
-
                 try {
                     const list = await apiGet('list_tokens.php');
                     if (!list.length) {
@@ -1220,7 +1202,7 @@
             }
 
             // ============================================================
-            // 15. برچسب نقش برای نوار بالا
+            // 15. برچسب نقش
             // ============================================================
             function roleBadgeText() {
                 if (currentRole === 'admin') return `🛠 ${currentUserName || 'مدیر'}`;
@@ -1229,7 +1211,7 @@
             }
 
             // ============================================================
-            // 16. مقداردهی اولیه اپلیکیشن (async)
+            // 16. مقداردهی اولیه اپلیکیشن (GET برای دریافت)
             // ============================================================
             async function initApp() {
                 document.getElementById('loginPage').classList.add('hidden');
@@ -1249,24 +1231,21 @@
                     document.getElementById('adminRoleBadge').className =
                         'role-badge ' + (currentRole === 'viewer' ? 'badge-viewer' : 'badge-admin');
 
-                    // بارگذاری محصولات (شامل غیرفعال برای مدیر)
                     try {
                         await loadProducts(currentRole === 'admin');
                     } catch (_) {}
                     fillProductSelects();
 
-                    // بارگذاری موجودی از سرور
                     try {
                         const serverStock = await apiGet('get_stock.php');
                         Object.assign(stock, serverStock);
                     } catch (_) {}
 
-                    // بارگذاری پیش‌بینی از سرور
                     try {
                         const serverForecast = await apiGet('get_forecast.php');
                         forecast = serverForecast;
                     } catch (_) {
-                        initForecast(); // fallback به پیش‌فرض
+                        initForecast();
                     }
 
                     renderForecastTable();
@@ -1292,7 +1271,7 @@
             }
 
             // ============================================================
-            // 17. اتصال رویدادها با addEventListener
+            // 17. اتصال رویدادها
             // ============================================================
             function bindEvents() {
                 document.getElementById('loginBtn').addEventListener('click', login);
@@ -1325,7 +1304,7 @@
             }
 
             // ============================================================
-            // 18. اجرای اولیه (async)
+            // 18. اجرای اولیه
             // ============================================================
             (async () => {
                 bindEvents();

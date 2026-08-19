@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     jsonError('فقط درخواست POST قبول می‌شود.', 405);
 }
 
-$body  = getJsonBody();
+$body  = json_decode(file_get_contents('php://input'), true) ?? [];
 $token = trim($body['token'] ?? $_POST['token'] ?? '');
 
 if (empty($token)) {

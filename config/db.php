@@ -6,8 +6,8 @@
 
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'hirbad_db');
-define('DB_USER', 'root');            // XAMPP پیش‌فرض — روی هاست عوض کنید
-define('DB_PASS', '');                // XAMPP پیش‌فرض — روی هاست عوض کنید
+define('DB_USER', 'root');   // نام کاربر دیتابیس
+define('DB_PASS', '');  // رمز دیتابیس
 define('DB_CHARSET', 'utf8mb4');
 
 /**
@@ -59,18 +59,6 @@ function jsonError(string $message, int $httpCode = 400): never {
 }
 
 /**
- * خواندن بدنه JSON (یک‌بار؛ php://input فقط یک‌بار قابل خواندن است)
- */
-function getJsonBody(): array {
-    static $body = null;
-    if ($body === null) {
-        $raw  = file_get_contents('php://input');
-        $body = json_decode($raw, true) ?? [];
-    }
-    return $body;
-}
-
-/**
  * بررسی توکن و برگرداندن اطلاعات کاربر
  * در صورت نبود توکن یا نامعتبر بودن، خطا برمی‌گردد
  */
@@ -83,9 +71,9 @@ function requireAuth(): array {
         $token = trim(substr($authHeader, 7));
     }
 
-    // از پارامتر GET/POST یا بدنه JSON (فرانت‌اند POST)
+    // یا از پارامتر GET/POST برای سادگی تست
     if (empty($token)) {
-        $token = trim($_GET['token'] ?? $_POST['token'] ?? getJsonBody()['token'] ?? '');
+        $token = trim($_GET['token'] ?? $_POST['token'] ?? '');
     }
 
     if (empty($token)) {
@@ -113,20 +101,6 @@ function requireAdmin(array $user): void {
     }
 }
 
-// پاسخ به درخواست‌های preflight OPTIONS
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    setJsonHeaders();
-    http_response_code(204);
-    exit;
-}
-
-setJsonHeaders();
-
-// ============================================================
-// این توابع را به انتهای فایل config/db.php موجودتان اضافه کنید
-// (قبل از خط "setJsonHeaders();" در انتهای فایل بگذارید یا بعدش، فرقی ندارد)
-// ============================================================
-
 /**
  * لیست محصولات فعال (برای اعتبارسنجی سفارش و پر کردن select ها)
  */
@@ -153,3 +127,12 @@ function getActiveProductByName(string $name): ?array {
     $row = $stmt->fetch();
     return $row ?: null;
 }
+
+// پاسخ به درخواست‌های preflight OPTIONS
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    setJsonHeaders();
+    http_response_code(204);
+    exit;
+}
+
+setJsonHeaders();
