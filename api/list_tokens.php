@@ -16,7 +16,7 @@ requireAdmin($user);
 
 $pdo  = getDB();
 $stmt = $pdo->query(
-    'SELECT id, token, name, role, is_active, created_at
+    'SELECT id, token, name, last_name, phone, role, is_active, created_at
      FROM users
      ORDER BY created_at DESC'
 );

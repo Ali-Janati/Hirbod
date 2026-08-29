@@ -1,13 +1,12 @@
 <?php
 // ============================================================
-// تنظیمات اتصال به دیتابیس
-// این فایل را خارج از پوشه public_html بگذارید!
+// تنظیمات اتصال به دیتابیس — محیط محلی (XAMPP)
 // ============================================================
 
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'hirbad_db');
-define('DB_USER', 'root');   // نام کاربر دیتابیس
-define('DB_PASS', '');  // رمز دیتابیس
+define('DB_USER', 'root');
+define('DB_PASS', '');
 define('DB_CHARSET', 'utf8mb4');
 
 /**
@@ -34,7 +33,6 @@ function getDB(): PDO {
  * هدرهای مشترک JSON + CORS
  */
 function setJsonHeaders(): void {
-    // در محیط production دامنه‌ی اپ خود را جایگزین * کنید
     header('Content-Type: application/json; charset=utf-8');
     header('Access-Control-Allow-Origin: *');
     header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
@@ -60,18 +58,15 @@ function jsonError(string $message, int $httpCode = 400): never {
 
 /**
  * بررسی توکن و برگرداندن اطلاعات کاربر
- * در صورت نبود توکن یا نامعتبر بودن، خطا برمی‌گردد
  */
 function requireAuth(): array {
     $token = '';
 
-    // توکن از هدر Authorization: Bearer <token>
     $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
     if (str_starts_with($authHeader, 'Bearer ')) {
         $token = trim(substr($authHeader, 7));
     }
 
-    // یا از پارامتر GET/POST برای سادگی تست
     if (empty($token)) {
         $token = trim($_GET['token'] ?? $_POST['token'] ?? '');
     }
@@ -93,7 +88,7 @@ function requireAuth(): array {
 }
 
 /**
- * بررسی نقش مدیر (admin) — viewer و user ممنوع
+ * بررسی نقش مدیر (admin)
  */
 function requireAdmin(array $user): void {
     if ($user['role'] !== 'admin') {
@@ -102,7 +97,7 @@ function requireAdmin(array $user): void {
 }
 
 /**
- * لیست محصولات فعال (برای اعتبارسنجی سفارش و پر کردن select ها)
+ * لیست محصولات فعال
  */
 function getActiveProducts(): array {
     $pdo = getDB();
@@ -111,14 +106,14 @@ function getActiveProducts(): array {
 }
 
 /**
- * فقط اسم محصولات فعال (برای بررسی نوع نمک معتبر)
+ * فقط اسم محصولات فعال
  */
 function getActiveProductNames(): array {
     return array_column(getActiveProducts(), 'name');
 }
 
 /**
- * گرفتن یک محصول فعال بر اساس نام (برای گرفتن قیمت هنگام ثبت سفارش)
+ * گرفتن یک محصول فعال بر اساس نام
  */
 function getActiveProductByName(string $name): ?array {
     $pdo = getDB();

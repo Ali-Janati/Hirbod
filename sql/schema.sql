@@ -4,11 +4,11 @@
 -- MariaDB / MySQL
 -- ============================================================
 
-CREATE DATABASE IF NOT EXISTS hirbad_db
+CREATE DATABASE IF NOT EXISTS if0_42703206_hirbad_db
     CHARACTER SET utf8mb4
     COLLATE utf8mb4_unicode_ci;
 
-USE hirbad_db;
+USE if0_42703206_hirbad_db;
 
 -- ============================================================
 -- جدول کاربران

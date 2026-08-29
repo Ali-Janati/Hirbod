@@ -1,9 +1,8 @@
 <?php
 // ============================================================
 // POST /api/submit_order.php
-// ثبت سفارش با کسر خودکار موجودی — فقط کاربر عادی
-// Body: { "token": "...", "salt_type": "صورتی", "quantity": 5, "delivery_date": "2025-08-20" }
-// Response: { success, message, data: { order_id, unit_price, total_price, ... } }
+// ثبت سفارش (بدون کسر موجودی — فقط کاربر عادی)
+// کسر موجودی فقط هنگام تحویل توسط ادمین انجام می‌شود
 // ============================================================
 
 require_once __DIR__ . '/../config/db.php';
@@ -14,7 +13,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $user = requireAuth();
 
-// مدیر و ناظر نمی‌توانند سفارش بدهند
 if ($user['role'] !== 'user') {
     jsonError('فقط کاربران عادی می‌توانند سفارش ثبت کنند.', 403);
 }
@@ -24,7 +22,6 @@ $saltType     = trim($body['salt_type'] ?? '');
 $quantity     = isset($body['quantity']) ? (int)$body['quantity'] : 0;
 $deliveryDate = trim($body['delivery_date'] ?? '');
 
-// اعتبارسنجی نوع محصول از روی جدول محصولات فعال (به‌جای آرایه ثابت قبلی)
 $product = getActiveProductByName($saltType);
 if (!$product) {
     jsonError('نوع محصول نامعتبر یا غیرفعال است.');
@@ -41,60 +38,43 @@ if ($deliveryDate < date('Y-m-d')) {
 
 $unitPrice  = (int)$product['price'];
 $totalPrice = $unitPrice * $quantity;
-
 $pdo = getDB();
 
-// ============================================================
-// تراکنش: بررسی موجودی + کسر + ثبت سفارش — همه یا هیچ
-// ============================================================
-$pdo->beginTransaction();
+// بررسی ظرفیت: سفارشات تأیید شده تحویل نشده
+$stmtPending = $pdo->prepare(
+    'SELECT COALESCE(SUM(quantity), 0) AS pending_qty
+     FROM orders
+     WHERE salt_type = ? AND delivery_date = ? AND status = ?'
+);
+$stmtPending->execute([$saltType, $deliveryDate, 'confirmed']);
+$pendingQty = (int)$stmtPending->fetch()['pending_qty'];
 
-try {
-    // قفل ردیف موجودی برای جلوگیری از race condition
-    $stmtStock = $pdo->prepare(
-        'SELECT quantity FROM stock
-         WHERE stock_date = ? AND salt_type = ?
-         FOR UPDATE'
-    );
-    $stmtStock->execute([$deliveryDate, $saltType]);
-    $stockRow = $stmtStock->fetch();
+// تولید روزانه
+$stmtProd = $pdo->prepare(
+    'SELECT quantity FROM production WHERE stock_date = ? AND salt_type = ?'
+);
+$stmtProd->execute([$deliveryDate, $saltType]);
+$prodRow = $stmtProd->fetch();
+$dailyProduction = $prodRow ? (int)$prodRow['quantity'] : 0;
 
-    // اگر موجودی برای آن روز تنظیم نشده، ۰ در نظر بگیر
-    $available = $stockRow ? (int)$stockRow['quantity'] : 0;
-
-    if ($available < $quantity) {
-        $pdo->rollBack();
-        jsonError('مشکلی پیش آمده، با پشتیبانی تماس بگیرید.');
-    }
-
-    // کسر موجودی
-    $stmtDeduct = $pdo->prepare(
-        'UPDATE stock SET quantity = quantity - ?
-         WHERE stock_date = ? AND salt_type = ?'
-    );
-    $stmtDeduct->execute([$quantity, $deliveryDate, $saltType]);
-
-    // ثبت سفارش با ثبت قیمت لحظه سفارش (تغییر بعدی قیمت روی سفارشات قبلی اثر نمی‌گذارد)
-    $stmtOrder = $pdo->prepare(
-        'INSERT INTO orders (user_id, salt_type, quantity, unit_price, total_price, delivery_date, status)
-         VALUES (?, ?, ?, ?, ?, ?, "confirmed")'
-    );
-    $stmtOrder->execute([$user['id'], $saltType, $quantity, $unitPrice, $totalPrice, $deliveryDate]);
-    $orderId = $pdo->lastInsertId();
-
-    $pdo->commit();
-
-    jsonOk([
-        'order_id'      => (int)$orderId,
-        'salt_type'     => $saltType,
-        'quantity'      => $quantity,
-        'unit_price'    => $unitPrice,
-        'total_price'   => $totalPrice,
-        'delivery_date' => $deliveryDate,
-        'status'        => 'confirmed',
-    ], "سفارش {$quantity} عدد {$saltType} به مبلغ {$totalPrice} تومان ثبت شد.");
-
-} catch (Throwable $e) {
-    $pdo->rollBack();
-    jsonError('خطای سرور. لطفاً دوباره تلاش کنید.', 500);
+if ($dailyProduction > 0 && ($pendingQty + $quantity) > $dailyProduction) {
+    jsonError("ظرفیت روز {$deliveryDate} برای {$saltType} کافی نیست. موجود: {$dailyProduction}، در انتظار: {$pendingQty}.");
 }
+
+// ثبت سفارش (کسر موجودی هنگام تحویل)
+$stmtOrder = $pdo->prepare(
+    'INSERT INTO orders (user_id, salt_type, quantity, unit_price, total_price, delivery_date, status)
+     VALUES (?, ?, ?, ?, ?, ?, ?)'
+);
+$stmtOrder->execute([$user['id'], $saltType, $quantity, $unitPrice, $totalPrice, $deliveryDate, 'confirmed']);
+$orderId = $pdo->lastInsertId();
+
+jsonOk([
+    'order_id'      => (int)$orderId,
+    'salt_type'     => $saltType,
+    'quantity'      => $quantity,
+    'unit_price'    => $unitPrice,
+    'total_price'   => $totalPrice,
+    'delivery_date' => $deliveryDate,
+    'status'        => 'confirmed',
+], "سفارش {$quantity} عدد {$saltType} ثبت شد.");

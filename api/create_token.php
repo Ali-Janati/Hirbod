@@ -2,62 +2,79 @@
 // ============================================================
 // POST /api/create_token.php
 // ساخت توکن جدید — فقط مدیر
-// Body: { "name": "نام کاربر", "role": "user|viewer|admin" }
-// Response: { success, message, data: { id, token, name, role } }
+// Body: { "name": "نام", "last_name": "نام خانوادگی", "phone": "0912...", "role": "user", "custom_token": "..." }
 // ============================================================
 
 require_once __DIR__ . '/../config/db.php';
 
-// فقط POST قبول می‌شه
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     jsonError('فقط درخواست POST قبول می‌شود.', 405);
 }
 
-// احراز هویت کاربر و بررسی نقش مدیر
 $user = requireAuth();
 requireAdmin($user);
 
-// ============================================================
-// دریافت بدنه‌ی درخواست (حذف getJsonBody() که وجود نداشت)
-// ============================================================
-$rawInput = file_get_contents('php://input');
-$body = json_decode($rawInput, true) ?? [];
+$body         = json_decode(file_get_contents('php://input'), true) ?? [];
+$name         = trim($body['name'] ?? '');
+$lastName     = trim($body['last_name'] ?? '');
+$phone        = trim($body['phone'] ?? '');
+$role         = trim($body['role'] ?? 'user');
+$customToken  = trim($body['custom_token'] ?? '');
 
-$name = trim($body['name'] ?? '');
-$role = trim($body['role'] ?? 'user');
-
-// ============================================================
-// اعتبارسنجی ورودی‌ها
-// ============================================================
+// اعتبارسنجی
 $validRoles = ['admin', 'viewer', 'user'];
 
 if ($name === '') {
-    jsonError('نام کاربر را وارد کنید.');
+    jsonError('نام را وارد کنید.');
 }
 if (mb_strlen($name) > 100) {
-    jsonError('نام کاربر حداکثر ۱۰۰ کاراکتر است.');
+    jsonError('نام حداکثر ۱۰۰ کاراکتر است.');
+}
+if ($lastName === '') {
+    jsonError('نام خانوادگی را وارد کنید.');
+}
+if ($phone === '') {
+    jsonError('شماره تلفن را وارد کنید.');
+}
+if (!preg_match('/^0[0-9]{10}$/', $phone)) {
+    jsonError('شماره تلفن نامعتبر است (فرمت: 09123456789).');
 }
 if (!in_array($role, $validRoles, true)) {
     jsonError('نقش نامعتبر است.');
 }
 
-// ============================================================
-// ساخت توکن جدید
-// ============================================================
-$newToken = 'hrb_' . bin2hex(random_bytes(16));
+$fullName = trim($name . ' ' . $lastName);
 
 $pdo = getDB();
-$stmt = $pdo->prepare(
-    'INSERT INTO users (token, name, role) VALUES (?, ?, ?)'
-);
-$stmt->execute([$newToken, $name, $role]);
 
-// ============================================================
-// پاسخ موفق
-// ============================================================
+// بررسی توکن سفارشی
+if ($customToken !== '') {
+    if (mb_strlen($customToken) < 3 || mb_strlen($customToken) > 100) {
+        jsonError('توکن سفارشی باید بین ۳ تا ۱۰۰ کاراکتر باشد.');
+    }
+    if (strpos($customToken, 'hrb_') !== 0) {
+        $customToken = 'hrb_' . $customToken;
+    }
+    $check = $pdo->prepare('SELECT id FROM users WHERE token = ?');
+    $check->execute([$customToken]);
+    if ($check->fetch()) {
+        jsonError('این توکن قبلاً استفاده شده است.');
+    }
+}
+
+// ساخت توکن جدید
+$newToken = ($customToken !== '') ? $customToken : 'hrb_' . bin2hex(random_bytes(16));
+
+$stmt = $pdo->prepare(
+    'INSERT INTO users (token, name, last_name, phone, role) VALUES (?, ?, ?, ?, ?)'
+);
+$stmt->execute([$newToken, $name, $lastName, $phone, $role]);
+
 jsonOk([
-    'id'    => (int)$pdo->lastInsertId(),
-    'token' => $newToken,
-    'name'  => $name,
-    'role'  => $role,
+    'id'        => (int)$pdo->lastInsertId(),
+    'token'     => $newToken,
+    'name'      => $fullName,
+    'last_name' => $lastName,
+    'phone'     => $phone,
+    'role'      => $role,
 ], 'توکن جدید ساخته شد.');
