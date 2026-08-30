@@ -3,6 +3,7 @@
 // POST /api/submit_order.php
 // ثبت سفارش (بدون کسر موجودی — فقط کاربر عادی)
 // کسر موجودی فقط هنگام تحویل توسط ادمین انجام می‌شود
+// محاسبه هوشمند: اگر کیلوگرم کم باشه، از بسته‌ها هم حساب می‌شه
 // ============================================================
 
 require_once __DIR__ . '/../config/db.php';
@@ -36,29 +37,65 @@ if ($deliveryDate < date('Y-m-d')) {
     jsonError('تاریخ دریافت نمی‌تواند در گذشته باشد.');
 }
 
-$unitPrice  = (int)$product['price'];
-$totalPrice = $unitPrice * $quantity;
+$unit              = $product['unit'];           // 'بسته' or 'کیلوگرم'
+$weightPerPackage  = (float)$product['weight_per_package'];
+$unitPrice         = (int)$product['price'];
+$totalPrice        = $unitPrice * $quantity;
+
 $pdo = getDB();
 
-// بررسی ظرفیت: سفارشات تأیید شده تحویل نشده
+// ─── محاسبه سفارش بر اساس واحد ───
+if ($unit === 'کیلوگرم') {
+    $orderKg = (float)$quantity;
+} else {
+    // بسته: هر بسته چند کیلو؟
+    $orderKg = $weightPerPackage > 0 ? $weightPerPackage * $quantity : (float)$quantity;
+}
+
+// ─── بررسی ظرفیت ───
+// سفارشات تأیید شده تحویل نشده (تبدیل به کیلو)
 $stmtPending = $pdo->prepare(
-    'SELECT COALESCE(SUM(quantity), 0) AS pending_qty
-     FROM orders
-     WHERE salt_type = ? AND delivery_date = ? AND status = ?'
+    'SELECT o.salt_type, o.quantity, p.unit, p.weight_per_package
+     FROM orders o
+     JOIN products p ON p.name = o.salt_type
+     WHERE o.salt_type = ? AND o.delivery_date = ? AND o.status = ?'
 );
 $stmtPending->execute([$saltType, $deliveryDate, 'confirmed']);
-$pendingQty = (int)$stmtPending->fetch()['pending_qty'];
+$pendingRows = $stmtPending->fetchAll();
+$pendingKg = 0;
+foreach ($pendingRows as $pr) {
+    if ($pr['unit'] === 'کیلوگرم') {
+        $pendingKg += (float)$pr['quantity'];
+    } else {
+        $wpp = (float)$pr['weight_per_package'];
+        $pendingKg += ($wpp > 0 ? $wpp * $pr['quantity'] : (float)$pr['quantity']);
+    }
+}
 
-// تولید روزانه
+// تولید روزانه (کیلو + بسته)
 $stmtProd = $pdo->prepare(
-    'SELECT quantity FROM production WHERE stock_date = ? AND salt_type = ?'
+    'SELECT quantity_kg, quantity_pkg FROM production WHERE stock_date = ? AND salt_type = ?'
 );
 $stmtProd->execute([$deliveryDate, $saltType]);
 $prodRow = $stmtProd->fetch();
-$dailyProduction = $prodRow ? (int)$prodRow['quantity'] : 0;
+$availableKg  = $prodRow ? (float)$prodRow['quantity_kg'] : 0;
+$availablePkg = $prodRow ? (int)$prodRow['quantity_pkg'] : 0;
 
-if ($dailyProduction > 0 && ($pendingQty + $quantity) > $dailyProduction) {
-    jsonError("ظرفیت روز {$deliveryDate} برای {$saltType} کافی نیست. موجود: {$dailyProduction}، در انتظار: {$pendingQty}.");
+// ظرفیت کل به کیلوگرم
+$totalCapacityKg = $availableKg + ($weightPerPackage > 0 ? $availablePkg * $weightPerPackage : 0);
+
+// مجموع سفارشات در انتظار + سفارش جدید
+$totalPendingKg = $pendingKg + $orderKg;
+
+if ($totalCapacityKg > 0 && $totalPendingKg > $totalCapacityKg) {
+    $remainingKg = max(0, $totalCapacityKg - $pendingKg);
+    jsonError(
+        "ظرفیت روز {$deliveryDate} برای {$saltType} کافی نیست.\n" .
+        "ظرفیت کل: " . round($totalCapacityKg, 1) . " کیلو ({$availableKg} کیلو آزاد + {$availablePkg} بسته).\n" .
+        "در انتظار: " . round($pendingKg, 1) . " کیلو.\n" .
+        "موجود برای سفارش جدید: " . round($remainingKg, 1) . " کیلو.\n" .
+        "سفارش شما: " . round($orderKg, 1) . " کیلو."
+    );
 }
 
 // ثبت سفارش (کسر موجودی هنگام تحویل)
@@ -73,8 +110,10 @@ jsonOk([
     'order_id'      => (int)$orderId,
     'salt_type'     => $saltType,
     'quantity'      => $quantity,
+    'unit'          => $unit,
     'unit_price'    => $unitPrice,
     'total_price'   => $totalPrice,
     'delivery_date' => $deliveryDate,
     'status'        => 'confirmed',
-], "سفارش {$quantity} عدد {$saltType} ثبت شد.");
+    'approx_kg'     => round($orderKg, 1),
+], "سفارش {$quantity} {$unit} {$saltType} ثبت شد (≈{$orderKg} کیلو).");

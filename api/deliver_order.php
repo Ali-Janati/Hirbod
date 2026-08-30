@@ -1,7 +1,8 @@
 <?php
 // ============================================================
 // POST /api/deliver_order.php
-// تحویل سفارش توسط ادمین — کسر موجودی + تغییر وضعیت
+// تحویل سفارش توسط ادمین — کسر هوشمند موجودی + تغییر وضعیت
+// اگر کیلوگرم کم باشه، از بسته‌ها هم کم می‌شه
 // Body: { "token": "...", "order_id": 123 }
 // ============================================================
 
@@ -27,8 +28,11 @@ $pdo->beginTransaction();
 try {
     // دریافت سفارش با قفل
     $stmt = $pdo->prepare(
-        'SELECT id, salt_type, quantity, delivery_date, status
-         FROM orders WHERE id = ? FOR UPDATE'
+        'SELECT o.id, o.salt_type, o.quantity, o.delivery_date, o.status,
+                p.unit, p.weight_per_package
+         FROM orders o
+         JOIN products p ON p.name = o.salt_type
+         WHERE o.id = ? FOR UPDATE'
     );
     $stmt->execute([$orderId]);
     $order = $stmt->fetch();
@@ -42,26 +46,60 @@ try {
         jsonError('فقط سفارشات تأیید شده قابل تحویل هستند.');
     }
 
-    // بررسی موجودی تولید
-    $stmtProd = $pdo->prepare(
-        'SELECT quantity FROM production WHERE stock_date = ? AND salt_type = ? FOR UPDATE'
-    );
-    $stmtProd->execute([$order['delivery_date'], $order['salt_type']]);
-    $prodRow = $stmtProd->fetch();
-    $available = $prodRow ? (int)$prodRow['quantity'] : 0;
+    $saltType          = $order['salt_type'];
+    $quantity          = (int)$order['quantity'];
+    $deliveryDate      = $order['delivery_date'];
+    $unit              = $order['unit'];
+    $weightPerPackage  = (float)$order['weight_per_package'];
 
-    if ($available < $order['quantity']) {
-        $pdo->rollBack();
-        jsonError("موجودی تولید کافی نیست. موجود: {$available}، سفارش: {$order['quantity']}.");
+    // ─── محاسبه مقدار سفارش به کیلوگرم ───
+    $orderKg = ($unit === 'کیلوگرم') ? (float)$quantity : ($weightPerPackage > 0 ? $weightPerPackage * $quantity : (float)$quantity);
+
+    // ─── دریافت موجودی تولید با قفل ───
+    $stmtProd = $pdo->prepare(
+        'SELECT quantity_kg, quantity_pkg FROM production WHERE stock_date = ? AND salt_type = ? FOR UPDATE'
+    );
+    $stmtProd->execute([$deliveryDate, $saltType]);
+    $prodRow = $stmtProd->fetch();
+    $availableKg  = $prodRow ? (float)$prodRow['quantity_kg'] : 0;
+    $availablePkg = $prodRow ? (int)$prodRow['quantity_pkg'] : 0;
+
+    // ─── کسر هوشمند ───
+    $remainingKg = $orderKg;
+
+    // اول از کیلوگرم آزاد کم کن
+    if ($availableKg >= $remainingKg) {
+        $availableKg -= $remainingKg;
+        $remainingKg = 0;
+    } else {
+        $remainingKg -= $availableKg;
+        $availableKg = 0;
     }
 
-    // کسر موجودی
-    $stmtDeduct = $pdo->prepare(
-        'UPDATE production SET quantity = quantity - ? WHERE stock_date = ? AND salt_type = ?'
-    );
-    $stmtDeduct->execute([$order['quantity'], $order['delivery_date'], $order['salt_type']]);
+    // بعد اگه هنوز کم داری، از بسته‌ها کم کن
+    $deductPkg = 0;
+    if ($remainingKg > 0 && $weightPerPackage > 0) {
+        $deductPkg = (int)ceil($remainingKg / $weightPerPackage);
+        if ($availablePkg >= $deductPkg) {
+            $availablePkg -= $deductPkg;
+            $remainingKg = 0;
+        } else {
+            $pdo->rollBack();
+            $totalKg = $availableKg + ($weightPerPackage > 0 ? $availablePkg * $weightPerPackage : 0);
+            jsonError("موجودی تولید کافی نیست. موجود: {$totalKg} کیلو، نیاز: {$orderKg} کیلو.");
+        }
+    } elseif ($remainingKg > 0) {
+        $pdo->rollBack();
+        jsonError("موجودی تولید کافی نیست.");
+    }
 
-    // تغییر وضعیت سفارش
+    // ─── آپدیت موجودی ───
+    $stmtDeduct = $pdo->prepare(
+        'UPDATE production SET quantity_kg = ?, quantity_pkg = ? WHERE stock_date = ? AND salt_type = ?'
+    );
+    $stmtDeduct->execute([$availableKg, $availablePkg, $deliveryDate, $saltType]);
+
+    // ─── تغییر وضعیت سفارش ───
     $stmtUpdate = $pdo->prepare(
         'UPDATE orders SET status = ?, delivered_at = NOW() WHERE id = ?'
     );
@@ -69,10 +107,19 @@ try {
 
     $pdo->commit();
 
+    $deductInfo = "کسر شد: {$orderKg} کیلو";
+    if ($deductPkg > 0) {
+        $deductInfo .= " (شامل {$deductPkg} بسته)";
+    }
+
     jsonOk([
-        'order_id'  => $orderId,
-        'status'    => 'delivered',
-    ], "سفارش {$orderId} تحویل داده شد و موجودی کسر شد.");
+        'order_id'      => $orderId,
+        'status'        => 'delivered',
+        'deducted_kg'   => $orderKg,
+        'deducted_pkg'  => $deductPkg,
+        'remaining_kg'  => $availableKg,
+        'remaining_pkg' => $availablePkg,
+    ], "سفارش {$orderId} تحویل داده شد. {$deductInfo}.");
 
 } catch (Throwable $e) {
     $pdo->rollBack();

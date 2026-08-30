@@ -2,9 +2,8 @@
 // ============================================================
 // POST /api/update_product.php
 // ویرایش محصول — فقط مدیر
-// Body: { "token": "...", "id": 3, "name"?: "...", "price"?: 12000, "is_active"?: 0|1 }
+// Body: { "id": 3, "name"?: "...", "price"?: 12000, "is_active"?: 0|1, "unit"?: "بسته"|"کیلوگرم", "weight_per_package"?: 5 }
 // فقط فیلدهایی که ارسال شوند تغییر می‌کنند
-// Response: { success, message, data: { id, name, price, is_active } }
 // ============================================================
 
 require_once __DIR__ . '/../config/db.php';
@@ -24,7 +23,7 @@ if ($id < 1) {
 }
 
 $pdo   = getDB();
-$check = $pdo->prepare('SELECT id, name, price, is_active FROM products WHERE id = ?');
+$check = $pdo->prepare('SELECT id, name, price, is_active, unit, weight_per_package FROM products WHERE id = ?');
 $check->execute([$id]);
 $product = $check->fetch();
 
@@ -32,9 +31,11 @@ if (!$product) {
     jsonError('محصول یافت نشد.', 404);
 }
 
-$name      = $product['name'];
-$price     = $product['price'];
-$isActive  = $product['is_active'];
+$name               = $product['name'];
+$price              = $product['price'];
+$isActive           = $product['is_active'];
+$unit               = $product['unit'];
+$weightPerPackage   = $product['weight_per_package'];
 
 if (isset($body['name'])) {
     $newName = trim($body['name']);
@@ -56,12 +57,29 @@ if (isset($body['is_active'])) {
     $isActive = ((int)$body['is_active'] === 1) ? 1 : 0;
 }
 
-$stmt = $pdo->prepare('UPDATE products SET name = ?, price = ?, is_active = ? WHERE id = ?');
-$stmt->execute([$name, $price, $isActive, $id]);
+if (isset($body['unit'])) {
+    if (!in_array($body['unit'], ['بسته', 'کیلوگرم'], true)) {
+        jsonError('واحد نامعتبر است.');
+    }
+    $unit = $body['unit'];
+}
+
+if (isset($body['weight_per_package'])) {
+    $weightPerPackage = (float)$body['weight_per_package'];
+}
+
+if ($unit === 'بسته' && $weightPerPackage <= 0) {
+    jsonError('برای محصول «بسته‌ای» وزن هر بسته الزامی است.');
+}
+
+$stmt = $pdo->prepare('UPDATE products SET name = ?, price = ?, is_active = ?, unit = ?, weight_per_package = ? WHERE id = ?');
+$stmt->execute([$name, $price, $isActive, $unit, $weightPerPackage, $id]);
 
 jsonOk([
-    'id'        => $id,
-    'name'      => $name,
-    'price'     => (int)$price,
-    'is_active' => (int)$isActive,
+    'id'                  => $id,
+    'name'                => $name,
+    'price'               => (int)$price,
+    'is_active'           => (int)$isActive,
+    'unit'                => $unit,
+    'weight_per_package'  => $weightPerPackage,
 ], 'محصول به‌روزرسانی شد.');

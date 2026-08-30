@@ -101,7 +101,7 @@ function requireAdmin(array $user): void {
  */
 function getActiveProducts(): array {
     $pdo = getDB();
-    $stmt = $pdo->query('SELECT id, name, price FROM products WHERE is_active = 1 ORDER BY id ASC');
+    $stmt = $pdo->query('SELECT id, name, price, unit, weight_per_package FROM products WHERE is_active = 1 ORDER BY id ASC');
     return $stmt->fetchAll();
 }
 
@@ -117,7 +117,7 @@ function getActiveProductNames(): array {
  */
 function getActiveProductByName(string $name): ?array {
     $pdo = getDB();
-    $stmt = $pdo->prepare('SELECT id, name, price FROM products WHERE name = ? AND is_active = 1 LIMIT 1');
+    $stmt = $pdo->prepare('SELECT id, name, price, unit, weight_per_package FROM products WHERE name = ? AND is_active = 1 LIMIT 1');
     $stmt->execute([$name]);
     $row = $stmt->fetch();
     return $row ?: null;
