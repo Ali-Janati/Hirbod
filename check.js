@@ -1,4 +1,13 @@
 
+    (function() {
+        try {
+            eval('var x = {a:1}; x?.a; var y = null ?? 5;');
+        } catch(e) {
+            var s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/@ungap/optional-chaining@1/dist/index.min.js';
+            document.head.appendChild(s);
+        }
+    })();
         (function() {
             'use strict';
 
@@ -212,7 +221,7 @@
                 const names = activeProductNames();
                 if (Object.keys(forecast).length === 0) {
                     for (let i = 0; i < 20; i++) {
-                        const date = addDays(today, i + 1);
+                        const date = addDays(today, i);
                         forecast[date] = {};
                         names.forEach(type => {
                             forecast[date][type] = 0;
@@ -470,7 +479,9 @@
                     let html = `<table class="orders-table">
                         <thead><tr><th>کاربر</th><th>نوع</th><th>تعداد</th><th>قیمت واحد</th><th>جمع</th><th>تاریخ دریافت</th><th>تاریخ ثبت</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody>`;
                     allOrders.forEach(o => {
-                        const canDeliver = o.status === 'confirmed' && currentRole === 'admin';
+                        const isAdmin = currentRole === 'admin';
+                        const canConfirm = o.status === 'pending' && isAdmin;
+                        const canDeliver = o.status === 'confirmed' && isAdmin;
                         html += `<tr>
                             <td data-label="کاربر">${o.user_name}</td>
                             <td data-label="نوع">${o.salt_type}</td>
@@ -480,7 +491,7 @@
                             <td data-label="تاریخ دریافت">${toJalaliString(o.delivery_date)}</td>
                             <td data-label="تاریخ ثبت">${toJalaliString(o.order_date)}</td>
                             <td data-label="وضعیت">${statusMap[o.status] || o.status}</td>
-                            <td data-label="عملیات"><div style="display:flex;gap:4px;">${canDeliver ? `<button class="btn-deliver" onclick="deliverOrder(${o.id})" title="تحویل">✅</button>` : ''}<button class="btn-del" onclick="deleteOrder(${o.id})" title="حذف">🗑️</button></div></td>
+                            <td data-label="عملیات"><div style="display:flex;gap:4px;">${canConfirm ? `<button class="btn-deliver" onclick="updateOrderStatus(${o.id},'confirmed')" title="تایید سفارش">✅</button><button class="btn-reject" onclick="updateOrderStatus(${o.id},'rejected')" title="رد سفارش">❌</button>` : ''}${canDeliver ? `<button class="btn-deliver" onclick="deliverOrder(${o.id})" title="تحویل">📦</button>` : ''}<button class="btn-del" onclick="deleteOrder(${o.id})" title="حذف">🗑️</button></div></td>
                         </tr>`;
                     });
                     html += '</tbody></table>';
@@ -821,8 +832,7 @@
                     setDefaultDate();
                     await renderMyOrders();
                 }
-                // Re-init collapsible after all data loads
-                setTimeout(() => initCollapsible(), 100);
+                // Collapsible init moved to after initApp completes
             }
 
             // ============================================================
@@ -1096,6 +1106,19 @@
                 }
             };
 
+            // 23.5 تایید/رد سفارش
+            window.updateOrderStatus = async function(orderId, newStatus) {
+                const label = newStatus === 'confirmed' ? 'تایید' : 'رد';
+                if (!confirm(`آیا مطمئن هستید که می‌خواهید سفارش ${orderId} را ${label} کنید؟`)) return;
+                try {
+                    await apiPost('update_order_status.php', { order_id: orderId, status: newStatus });
+                    alert(`✅ سفارش ${orderId} ${label} شد.`);
+                    await renderAllOrders();
+                } catch(err) {
+                    alert(`❌ ${err.message}`);
+                }
+            };
+
             // 18. اجرای اولیه
             // ============================================================
             // ============================================================
@@ -1226,6 +1249,7 @@
                     const card = h3.closest('.card');
                     if (!card) return;
                     if (card.querySelector('[onclick*="openExcelModal"]')) return;
+                    if (card.querySelector('.collapse-body')) return; // already wrapped
                     const bodyItems = [];
                     for (const child of card.children) {
                         if (child !== h3) bodyItems.push(child);
@@ -1249,7 +1273,7 @@
                         if (wrapper.classList.contains('collapsed')) {
                             wrapper.classList.remove('collapsed');
                             h3.classList.remove('collapsed');
-                            wrapper.style.maxHeight = wrapper.scrollHeight + 'px';
+                            wrapper.style.maxHeight = 'none';
                         } else {
                             wrapper.classList.add('collapsed');
                             h3.classList.add('collapsed');
@@ -1384,16 +1408,19 @@
                 });
             }
 
-            // Initialize after DOM ready
+            // Initialize shamsi date pickers after DOM ready
             setTimeout(() => {
-                initCollapsible();
                 initShamsiDatePickers();
             }, 100);
 
             (async () => {
-                bindEvents();
-                await tryAutoLogin();
-                await initApp();
+                try {
+                    bindEvents();
+                    await tryAutoLogin();
+                    await initApp();
+                } catch (e) { console.error('Auto-login error:', e); }
+                // Init collapsible AFTER all data is loaded and rendered
+                setTimeout(() => initCollapsible(), 300);
             })();
 
         })();

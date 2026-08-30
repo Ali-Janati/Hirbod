@@ -246,6 +246,18 @@
         }
         .btn-deliver:hover { background: #059669; transform: translateY(-1px); }
         .btn-deliver:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .btn-reject {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+        .btn-reject:hover { background: #dc2626; transform: translateY(-1px); }
         .btn-del {
             width: auto;
             min-height: 34px;
@@ -437,7 +449,8 @@
         }
         .collapse-body {
             overflow: hidden;
-            transition: max-height 0.3s ease, opacity 0.2s ease;
+            transition: max-height 0.4s ease-out, opacity 0.2s ease;
+            max-height: 5000px;
         }
         .collapse-body.collapsed {
             max-height: 0 !important;
@@ -727,12 +740,12 @@
                 <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px;margin-bottom:12px;">
                     <h3 style="margin:0 0 8px;font-size:14px;">📋 خروجی سفارشات</h3>
                     <div style="display:flex;flex-wrap:wrap;gap:8px;">
-                        <button class="btn-outline" onclick="exportFilteredOrdersCSV('all')">همه سفارشات</button>
-                        <button class="btn-outline" onclick="exportFilteredOrdersCSV('today')">سفارشات امروز</button>
-                        <button class="btn-outline" onclick="exportFilteredOrdersCSV('tomorrow')">سفارشات فردا</button>
-                        <button class="btn-outline" onclick="exportFilteredOrdersCSV('week')">هفته جاری</button>
-                        <button class="btn-outline" onclick="exportFilteredOrdersCSV('confirmed')">در انتظار تحویل</button>
-                        <button class="btn-outline" onclick="exportFilteredOrdersCSV('delivered')">تحویل شده</button>
+                        <button class="btn-outline" onclick="exportFilteredOrdersCSV('all')" style="border-color:#10b981;color:#065f46;">📋 همه سفارشات</button>
+                        <button class="btn-outline" onclick="exportFilteredOrdersCSV('today')" style="border-color:#f59e0b;color:#92400e;">📅 سفارشات امروز</button>
+                        <button class="btn-outline" onclick="exportFilteredOrdersCSV('tomorrow')" style="border-color:#f59e0b;color:#92400e;">📅 سفارشات فردا</button>
+                        <button class="btn-outline" onclick="exportFilteredOrdersCSV('week')" style="border-color:#8b5cf6;color:#5b21b6;">📅 هفته جاری</button>
+                        <button class="btn-outline" onclick="exportFilteredOrdersCSV('confirmed')" style="border-color:#3b82f6;color:#1e40af;">⏳ در انتظار تحویل</button>
+                        <button class="btn-outline" onclick="exportFilteredOrdersCSV('delivered')" style="border-color:#10b981;color:#065f46;">✅ تحویل شده</button>
                     </div>
                 </div>
 
@@ -740,8 +753,8 @@
                 <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px;margin-bottom:12px;">
                     <h3 style="margin:0 0 8px;font-size:14px;">👤 خروجی کاربران</h3>
                     <div style="display:flex;flex-wrap:wrap;gap:8px;">
-                        <button class="btn-outline" onclick="exportUsersCSV()">همه کاربران</button>
-                        <button class="btn-outline" onclick="exportUsersWithOrdersCSV()">کاربران + سفارشات</button>
+                        <button class="btn-outline" onclick="exportUsersCSV()" style="border-color:#3b82f6;color:#1e40af;">👤 همه کاربران</button>
+                        <button class="btn-outline" onclick="exportUsersWithOrdersCSV()" style="border-color:#8b5cf6;color:#5b21b6;">📊 کاربران + سفارشات</button>
                     </div>
                 </div>
 
@@ -749,8 +762,8 @@
                 <div style="background:#fefce8;border:1px solid #fde68a;border-radius:12px;padding:16px;margin-bottom:12px;">
                     <h3 style="margin:0 0 8px;font-size:14px;">🏭 خروجی تولید</h3>
                     <div style="display:flex;flex-wrap:wrap;gap:8px;">
-                        <button class="btn-outline" onclick="exportStockCSV()">تولید امروز</button>
-                        <button class="btn-outline" onclick="exportForecastCSV()">تولید آینده (۲۰ روز)</button>
+                        <button class="btn-outline" onclick="exportStockCSV()" style="border-color:#f59e0b;color:#92400e;">🏭 تولید امروز</button>
+                        <button class="btn-outline" onclick="exportForecastCSV()" style="border-color:#f59e0b;color:#92400e;">📈 تولید آینده (۲۰ روز)</button>
                     </div>
                 </div>
 
@@ -765,12 +778,26 @@
                     <input type="file" id="importForecastFile" accept=".csv" style="display:none" onchange="importForecastCSV(this)" />
                 </div>
 
+                <!-- لینک صفحه مدیریت سفارشات -->
+                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:12px;text-align:center;">
+                    <a href="orders.html" style="display:inline-block;background:#3b82f6;color:white;padding:10px 24px;border-radius:10px;text-decoration:none;font-weight:600;">📋 مدیریت پیشرفته سفارشات</a>
+                </div>
+
                 <div id="csvMsg" style="margin-top:12px;"></div>
             </div>
         </div>
     </div>
 
     <script>
+    (function() {
+        try {
+            eval('var x = {a:1}; x?.a; var y = null ?? 5;');
+        } catch(e) {
+            var s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/@ungap/optional-chaining@1/dist/index.min.js';
+            document.head.appendChild(s);
+        }
+    })();
         (function() {
             'use strict';
 
@@ -984,7 +1011,7 @@
                 const names = activeProductNames();
                 if (Object.keys(forecast).length === 0) {
                     for (let i = 0; i < 20; i++) {
-                        const date = addDays(today, i + 1);
+                        const date = addDays(today, i);
                         forecast[date] = {};
                         names.forEach(type => {
                             forecast[date][type] = 0;
@@ -1595,8 +1622,7 @@
                     setDefaultDate();
                     await renderMyOrders();
                 }
-                // Re-init collapsible after all data loads
-                setTimeout(() => initCollapsible(), 100);
+                // Collapsible init moved to after initApp completes
             }
 
             // ============================================================
@@ -2013,6 +2039,7 @@
                     const card = h3.closest('.card');
                     if (!card) return;
                     if (card.querySelector('[onclick*="openExcelModal"]')) return;
+                    if (card.querySelector('.collapse-body')) return; // already wrapped
                     const bodyItems = [];
                     for (const child of card.children) {
                         if (child !== h3) bodyItems.push(child);
@@ -2036,7 +2063,7 @@
                         if (wrapper.classList.contains('collapsed')) {
                             wrapper.classList.remove('collapsed');
                             h3.classList.remove('collapsed');
-                            wrapper.style.maxHeight = wrapper.scrollHeight + 'px';
+                            wrapper.style.maxHeight = 'none';
                         } else {
                             wrapper.classList.add('collapsed');
                             h3.classList.add('collapsed');
@@ -2171,19 +2198,62 @@
                 });
             }
 
-            // Initialize after DOM ready
+            // Initialize shamsi date pickers after DOM ready
             setTimeout(() => {
-                initCollapsible();
                 initShamsiDatePickers();
             }, 100);
 
             (async () => {
-                bindEvents();
-                await tryAutoLogin();
-                await initApp();
+                try {
+                    bindEvents();
+                    await tryAutoLogin();
+                    await initApp();
+                } catch (e) { console.error('Auto-login error:', e); }
+                // Init collapsible AFTER all data is loaded and rendered
+                setTimeout(() => initCollapsible(), 300);
             })();
 
         })();
+
+        // Fallback: ensure collapsible is initialized after all renders
+        setTimeout(function() {
+            var admin = document.getElementById('adminPanel');
+            if (admin && !admin.classList.contains('hidden')) {
+                var hasWrapper = admin.querySelector('.collapse-body');
+                if (!hasWrapper) {
+                    var h3s = admin.querySelectorAll('.card > h3');
+                    h3s.forEach(function(h3) {
+                        var card = h3.closest('.card');
+                        if (!card) return;
+                        if (card.querySelector('.collapse-body')) return;
+                        var bodyItems = [];
+                        for (var i = 0; i < card.children.length; i++) {
+                            if (card.children[i] !== h3) bodyItems.push(card.children[i]);
+                        }
+                        if (!bodyItems.length) return;
+                        h3.classList.add('collapse-toggle');
+                        h3.style.cursor = 'pointer';
+                        var wrapper = document.createElement('div');
+                        wrapper.classList.add('collapse-body');
+                        bodyItems.forEach(function(el) { wrapper.appendChild(el); });
+                        card.appendChild(wrapper);
+                        wrapper.classList.add('collapsed');
+                        h3.classList.add('collapsed');
+                        h3.addEventListener('click', function() {
+                            if (wrapper.classList.contains('collapsed')) {
+                                wrapper.classList.remove('collapsed');
+                                h3.classList.remove('collapsed');
+                                wrapper.style.maxHeight = 'none';
+                            } else {
+                                wrapper.classList.add('collapsed');
+                                h3.classList.add('collapsed');
+                            }
+                        });
+                    });
+                }
+            }
+        }, 500);
+
     </script>
 
 </body>

@@ -103,7 +103,7 @@ $stmtOrder = $pdo->prepare(
     'INSERT INTO orders (user_id, salt_type, quantity, unit_price, total_price, delivery_date, status)
      VALUES (?, ?, ?, ?, ?, ?, ?)'
 );
-$stmtOrder->execute([$user['id'], $saltType, $quantity, $unitPrice, $totalPrice, $deliveryDate, 'confirmed']);
+$stmtOrder->execute([$user['id'], $saltType, $quantity, $unitPrice, $totalPrice, $deliveryDate, 'pending']);
 $orderId = $pdo->lastInsertId();
 
 jsonOk([
@@ -114,6 +114,6 @@ jsonOk([
     'unit_price'    => $unitPrice,
     'total_price'   => $totalPrice,
     'delivery_date' => $deliveryDate,
-    'status'        => 'confirmed',
+    'status'        => 'pending',
     'approx_kg'     => round($orderKg, 1),
 ], "سفارش {$quantity} {$unit} {$saltType} ثبت شد (≈{$orderKg} کیلو).");

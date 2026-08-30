@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>مدیریت سفارشات - هیربد</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f2f5; color: #1f2937; }
+        .header { background: linear-gradient(135deg, #1e40af, #3b82f6); color: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 18px; }
+        .header a { color: white; text-decoration: none; background: rgba(255,255,255,0.2); padding: 6px 14px; border-radius: 8px; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 16px; }
+        .filters { background: white; border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .filters select, .filters input { padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; }
+        .filters select { min-width: 140px; }
+        .filters input[type="search"] { flex: 1; min-width: 200px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; }
+        .stat-card { background: white; border-radius: 12px; padding: 16px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .stat-card .num { font-size: 24px; font-weight: 700; }
+        .stat-card .label { font-size: 12px; color: #6b7280; margin-top: 4px; }
+        .stat-pending .num { color: #f59e0b; }
+        .stat-confirmed .num { color: #3b82f6; }
+        .stat-delivered .num { color: #10b981; }
+        .stat-rejected .num { color: #ef4444; }
+        .orders-table { width: 100%; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-collapse: collapse; }
+        .orders-table th { background: #f8fafc; padding: 12px; text-align: right; font-size: 13px; color: #6b7280; border-bottom: 2px solid #e5e7eb; }
+        .orders-table td { padding: 10px 12px; border-bottom: 1px solid #f3f4f6; font-size: 14px; }
+        .orders-table tr:hover { background: #f8fafc; }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .badge-pending { background: #fef3c7; color: #92400e; }
+        .badge-confirmed { background: #dbeafe; color: #1e40af; }
+        .badge-delivered { background: #d1fae5; color: #065f46; }
+        .badge-rejected { background: #fee2e2; color: #991b1b; }
+        .btn { padding: 6px 14px; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-family: inherit; transition: all 0.2s; }
+        .btn-confirm { background: #10b981; color: white; }
+        .btn-confirm:hover { background: #059669; }
+        .btn-reject { background: #ef4444; color: white; }
+        .btn-reject:hover { background: #dc2626; }
+        .btn-deliver { background: #3b82f6; color: white; }
+        .btn-deliver:hover { background: #2563eb; }
+        .btn-delete { background: #f3f4f6; color: #6b7280; }
+        .btn-delete:hover { background: #fee2e2; color: #dc2626; }
+        .btn-group { display: flex; gap: 6px; }
+        .empty { text-align: center; padding: 40px; color: #9ca3af; }
+        .loading { text-align: center; padding: 40px; color: #6b7280; }
+        @media (max-width: 768px) {
+            .orders-table { font-size: 12px; }
+            .orders-table th, .orders-table td { padding: 8px 6px; }
+            .btn { padding: 4px 8px; font-size: 11px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📋 مدیریت سفارشات</h1>
+        <a href="index.html">🏠 بازگشت به پنل اصلی</a>
+    </div>
+    <div class="container">
+        <div class="filters">
+            <select id="statusFilter">
+                <option value="all">همه وضعیت‌ها</option>
+                <option value="pending">⏳ در انتظار</option>
+                <option value="confirmed">✅ تایید شده</option>
+                <option value="delivered">📦 تحویل شده</option>
+                <option value="rejected">❌ رد شده</option>
+            </select>
+            <select id="typeFilter">
+                <option value="all">همه محصولات</option>
+            </select>
+            <input type="search" id="searchInput" placeholder="🔍 جستجو بر اساس نام کاربر، محصول یا تاریخ..." />
+            <button class="btn btn-confirm" onclick="exportFiltered()">📥 خروجی اکسل</button>
+        </div>
+        <div class="stats" id="stats"></div>
+        <div id="ordersContainer"><div class="loading">⏳ در حال بارگذاری...</div></div>
+    </div>
+
+    <script>
+    (function() {
+        'use strict';
+        const API_BASE = window.location.hostname === 'localhost' ? '/hirbod/api' : 'https://hrbsabt.ir/api';
+        const TOKEN_KEY = 'hirbad-salt-token';
+        let token = null, role = null, allOrders = [], products = [];
+
+        async function apiGet(path) {
+            const r = await fetch(API_BASE + '/' + path + '?token=' + token);
+            const d = await r.json();
+            if (!d.success) throw new Error(d.message);
+            return d.data;
+        }
+        async function apiPost(path, body) {
+            const r = await fetch(API_BASE + '/' + path + '?token=' + token, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            const d = await r.json();
+            if (!d.success) throw new Error(d.message);
+            return d;
+        }
+
+        function toJalali(gY, gM, gD) {
+            const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+            let gy = gY - 1600, gm = gM - 1, gd = gD - 1;
+            let g_day_no = 365 * gy + Math.floor((gy + 3) / 4) - Math.floor((gy + 99) / 100) + Math.floor((gy + 399) / 400);
+            g_day_no += g_d_m[gm] + gd;
+            let j_day_no = g_day_no - 79;
+            let j_np = Math.floor(j_day_no / 12053);
+            j_day_no %= 12053;
+            let jy = 979 + 33 * j_np + 4 * Math.floor(j_day_no / 1461);
+            j_day_no %= 1461;
+            if (j_day_no >= 366) { jy += Math.floor((j_day_no - 1) / 365); j_day_no = (j_day_no - 1) % 365; }
+            let jm, jd;
+            if (j_day_no < 186) { jm = 1 + Math.floor(j_day_no / 31); jd = 1 + (j_day_no % 31); }
+            else { j_day_no -= 186; jm = 7 + Math.floor(j_day_no / 30); jd = 1 + (j_day_no % 30); }
+            return jy + '/' + String(jm).padStart(2,'0') + '/' + String(jd).padStart(2,'0');
+        }
+        function toJalaliStr(d) { if (!d) return '-'; const p = d.split('-'); return toJalali(+p[0],+p[1],+p[2]); }
+        function formatPrice(n) { return Number(n).toLocaleString('fa-IR'); }
+        const statusMap = { confirmed: 'تأیید شده', pending: 'در انتظار', rejected: 'رد شده', delivered: 'تحویل شده' };
+        const badgeMap = { confirmed: 'badge-confirmed', pending: 'badge-pending', rejected: 'badge-rejected', delivered: 'badge-delivered' };
+
+        function renderStats() {
+            const counts = { pending: 0, confirmed: 0, delivered: 0, rejected: 0 };
+            allOrders.forEach(o => { if (counts[o.status] !== undefined) counts[o.status]++; });
+            document.getElementById('stats').innerHTML =
+                `<div class="stat-card stat-pending"><div class="num">${counts.pending}</div><div class="label">⏳ در انتظار</div></div>` +
+                `<div class="stat-card stat-confirmed"><div class="num">${counts.confirmed}</div><div class="label">✅ تایید شده</div></div>` +
+                `<div class="stat-card stat-delivered"><div class="num">${counts.delivered}</div><div class="label">📦 تحویل شده</div></div>` +
+                `<div class="stat-card stat-rejected"><div class="num">${counts.rejected}</div><div class="label">❌ رد شده</div></div>`;
+        }
+
+        function getFiltered() {
+            const status = document.getElementById('statusFilter').value;
+            const type = document.getElementById('typeFilter').value;
+            const q = document.getElementById('searchInput').value.trim().toLowerCase();
+            return allOrders.filter(o => {
+                if (status !== 'all' && o.status !== status) return false;
+                if (type !== 'all' && o.salt_type !== type) return false;
+                if (q && !(o.user_name || '').toLowerCase().includes(q) && !(o.salt_type || '').toLowerCase().includes(q) && !(o.delivery_date || '').includes(q)) return false;
+                return true;
+            });
+        }
+
+        function render() {
+            renderStats();
+            const filtered = getFiltered();
+            if (filtered.length === 0) {
+                document.getElementById('ordersContainer').innerHTML = '<div class="empty">📭 سفارشی یافت نشد</div>';
+                return;
+            }
+            let html = '<table class="orders-table"><thead><tr><th>ID</th><th>کاربر</th><th>محصول</th><th>تعداد</th><th>قیمت کل</th><th>تاریخ دریافت</th><th>تاریخ ثبت</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody>';
+            filtered.forEach(o => {
+                const btns = [];
+                if (o.status === 'pending') {
+                    btns.push(`<button class="btn btn-confirm" onclick="doAction('confirm',${o.id})">✅ تایید</button>`);
+                    btns.push(`<button class="btn btn-reject" onclick="doAction('reject',${o.id})">❌ رد</button>`);
+                } else if (o.status === 'confirmed') {
+                    btns.push(`<button class="btn btn-deliver" onclick="doAction('deliver',${o.id})">📦 تحویل</button>`);
+                }
+                btns.push(`<button class="btn btn-delete" onclick="doAction('delete',${o.id})">🗑️</button>`);
+                html += `<tr>
+                    <td>#${o.id}</td>
+                    <td><strong>${o.user_name || '-'}</strong></td>
+                    <td>${o.salt_type}</td>
+                    <td>${o.quantity}</td>
+                    <td>${formatPrice(o.total_price)} ت</td>
+                    <td>${toJalaliStr(o.delivery_date)}</td>
+                    <td>${toJalaliStr(o.order_date)}</td>
+                    <td><span class="badge ${badgeMap[o.status] || ''}">${statusMap[o.status] || o.status}</span></td>
+                    <td><div class="btn-group">${btns.join('')}</div></td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            document.getElementById('ordersContainer').innerHTML = html;
+        }
+
+        window.doAction = async function(action, id) {
+            const labels = { confirm: 'تایید', reject: 'رد', deliver: 'تحویل', delete: 'حذف' };
+            if (!confirm(`آیا مطمئن هستید؟ (${labels[action]} سفارش #${id})`)) return;
+            try {
+                if (action === 'confirm') await apiPost('update_order_status.php', { order_id: id, status: 'confirmed' });
+                else if (action === 'reject') await apiPost('update_order_status.php', { order_id: id, status: 'rejected' });
+                else if (action === 'deliver') await apiPost('deliver_order.php', { order_id: id });
+                else if (action === 'delete') await apiPost('delete_order.php', { order_id: id });
+                alert(`✅ سفارش #${id} ${labels[action]} شد.`);
+                await loadOrders();
+            } catch (e) { alert('❌ ' + e.message); }
+        };
+
+        window.exportFiltered = function() {
+            const filtered = getFiltered();
+            let csv = '\uFEFF'; // BOM for Excel
+            csv += 'کاربر,محصول,تعداد,قیمت واحد,قیمت کل,تاریخ دریافت,تاریخ ثبت,وضعیت\n';
+            filtered.forEach(o => {
+                csv += `${o.user_name || ''},${o.salt_type},${o.quantity},${o.unit_price},${o.total_price},${toJalaliStr(o.delivery_date)},${toJalaliStr(o.order_date)},${statusMap[o.status] || o.status}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'orders_' + new Date().toISOString().slice(0,10) + '.csv';
+            link.click();
+        };
+
+        async function loadOrders() {
+            try {
+                allOrders = await apiGet('all_orders.php');
+                render();
+            } catch (e) {
+                document.getElementById('ordersContainer').innerHTML = `<div class="empty">❌ خطا: ${e.message}</div>`;
+            }
+        }
+
+        async function loadProducts() {
+            try {
+                products = await apiGet('list_products.php');
+                const sel = document.getElementById('typeFilter');
+                products.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p.name; opt.textContent = p.name;
+                    sel.appendChild(opt);
+                });
+            } catch (e) {}
+        }
+
+        async function init() {
+            token = localStorage.getItem(TOKEN_KEY);
+            if (!token) { window.location.href = 'index.html'; return; }
+            try {
+                const user = await apiGet('auth.php');
+                role = user.role;
+                if (role !== 'admin' && role !== 'viewer') { window.location.href = 'index.html'; return; }
+            } catch (e) { window.location.href = 'index.html'; return; }
+
+            document.getElementById('statusFilter').addEventListener('change', render);
+            document.getElementById('typeFilter').addEventListener('change', render);
+            document.getElementById('searchInput').addEventListener('input', render);
+
+            await loadProducts();
+            await loadOrders();
+        }
+        init();
+    })();
+    </script>
+</body>
+</html>
